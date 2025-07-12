@@ -48,7 +48,6 @@ body {
 }
 
 #header {
-    /*position: relative;*/
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -339,15 +338,33 @@ body {
 
 #register {
     background-image: url("IMG/register.jpg");
-    height: auto;
+    height: 100vh;
     width: 100%;
     margin-top: 170px;
     background-size: cover;
     background-position: center;
     display: flex;
     justify-content: center;
+    align-items: center;
     padding: 60px 0;
     position: relative;
+}
+
+#register::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    /* umbra subtilă neagră */
+    z-index: 1;
+}
+
+#register>* {
+    position: relative;
+    z-index: 2;
 }
 
 #rectangle {
@@ -359,13 +376,28 @@ body {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
+#rectangle_bar {
+    width: 100%;
+    background: #a00a0a;
+    margin-top: 20px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: center;
+}
+
 * {
     box-sizing: border-box
 }
 
 /* Full-width input fields */
 .container input[type=text],
-.container input[type=password] {
+.container input[type=password],
+.container input[type=email],
+.container input[type=tel],
+.container input[type=date] {
     width: 100%;
     padding: 15px;
     margin: 5px 0 22px 0;
@@ -375,37 +407,9 @@ body {
 }
 
 input[type=text]:focus,
-input[type=password]:focus {
-    background-color: #ddd;
-    outline: none;
-}
-
-input[type=tel] {
-    width: 100% !important;
-    padding: 15px !important;
-    margin: 5px 0 22px 0 !important;
-    display: inline-block !important;
-    border: none !important;
-    background: #f1f1f1 !important;
-    box-sizing: border-box;
-}
-
-input[type=tel]:focus {
-    background-color: #ddd;
-    outline: none;
-}
-
-input[type=date] {
-    width: 100%;
-    padding: 15px;
-    margin: 5px 20 22px 0;
-    display: inline-block;
-    border: none;
-    background: #f1f1f1;
-    font-size: 14px;
-    box-sizing: border-box;
-}
-
+input[type=password]:focus,
+input[type=email]:focus,
+input[type=tel]:focus,
 input[type=date]:focus {
     background-color: #ddd;
     outline: none;
@@ -440,9 +444,11 @@ button:hover {
 
 /* Float cancel and signup buttons and add an equal width */
 .cancelbtn,
-.signupbtn {
+.signupbtn,
+.loginbtn,
+resetpassbtn {
     float: left;
-    width: 50%;
+    width: 100%;
 }
 
 /* Add padding to container elements */
@@ -461,7 +467,9 @@ button:hover {
 @media screen and (max-width: 300px) {
 
     .cancelbtn,
-    .signupbtn {
+    .signupbtn,
+    .loginbtn,
+    .resetpassbtn {
         width: 100%;
     }
 }
@@ -480,4 +488,176 @@ button:hover {
 .half-field input[type="text"] {
     width: 100%;
     /* ca să umple div-ul */
+}
+
+.text-link {
+    color: #007BFF;
+    /* albastru de link */
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+    background: none;
+    border: none;
+}
+
+.text-link:hover {
+    text-decoration: none;
+    color: #0056b3;
+}
+
+.event-section {
+    padding: 0px 30px;
+    background-color: #f9f9f9;
+}
+
+.event-section h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 28px;
+    color: #333;
+}
+
+.event-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* 4 pe un rând */
+    gap: 30px;
+}
+
+.event-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s;
+}
+
+.event-card:hover {
+    transform: scale(1.03);
+}
+
+.event-card img {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+}
+
+.event-card h3 {
+    margin: 15px 0 5px;
+    color: #810808;
+}
+
+.event-card p {
+    padding: 0 15px 20px;
+    font-size: 14px;
+    color: #555;
+}
+
+/*Pt ecrane mai mici*/
+@media screen and (max-width: 1024px) {
+    .event-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .event-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .event-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.transparent-button {
+  background-color: transparent;
+  color: white;
+  border: 2px solid white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.transparent-button:hover {
+  background-color: white;
+  color: #a00a0a; /* culoarea fundalului tău pentru contrast la hover */
+}
+/*
+#footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background-color: #e6e6e6;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+    height: 120px;
+    flex-wrap: wrap;
+    gap: 15px;
+    position: fixed;
+}*/
+
+.footer {
+  background-color: #e6e6e6;
+  color: #1a1a1a;
+  padding: 40px 20px 20px 20px;
+  font-size: 14px;
+}
+
+.footer-container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.footer-column {
+  flex: 1 1 250px;
+}
+
+.footer-column h3 {
+  margin-bottom: 15px;
+  color: #1a1a1a;
+}
+
+.footer-column p,
+.footer-column ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-column a {
+  color: #1a1a1a;
+  text-decoration: none;
+}
+
+.footer-column a:hover {
+  color: #1a1a1a;
+  text-decoration: underline;
+}
+
+.footer-bottom {
+  text-align: center;
+  margin-top: 30px;
+  border-top: 1px solid #e6e6e6;
+  padding-top: 15px;
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+.footer-policy {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.footer-policy li {
+  margin: 10px 0;
 }

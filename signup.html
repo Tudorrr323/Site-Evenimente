@@ -10,19 +10,32 @@
 
     <link href="./phone/css/demo.css" rel="stylesheet">
     <link href="./phone/css/intlTelInput.css" rel="stylesheet">
-
 </head>
 
 <body>
 
     <section id="header">
+        <button id="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navbar-left">
+            <i class="fa-solid fa-bars"></i>
+        </button>
         <div class="header-left">
             <ul id="navbar-left">
+                <li class="burger-logo">
+                    <a href="index.html" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                </li>
+                <li class="mobile-search">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search events..." />
+                        <input type="text" placeholder="Location..." />
+                        <button><i class="fas fa-search"></i></button>
+                    </div>
+                </li>
                 <li><a class="active" href="index.html">Home</a></li>
                 <li><a href="discover_events.html">Discover Events</a></li>
                 <li><a href="my_tickets.html">My Tickets</a></li>
                 <li><a href="virtual_events.html">Virtual Events</a></li>
                 <li><a href="create_events.html">Create Events</a></li>
+                <li><a href="about_us.html">About Us</a></li>
             </ul>
         </div>
 
@@ -34,13 +47,18 @@
 
         <div class="header-right">
             <ul id="navbar-right">
-                <div class="search-bar">
-                    <input type="text" placeholder="Search events..." />
-                    <input type="text" placeholder="Location..." />
-                    <button><i class="fas fa-search"></i></button>
-                </div>
-                <li><a href="login.html">Log in</a></li>
-                <li><a href="signup.html">Sign Up</a></li>
+                <li class="desktop-search">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search events..." />
+                        <input type="text" placeholder="Location..." />
+                        <button><i class="fas fa-search"></i></button>
+                    </div>
+                </li>
+                <li class="desktop-login"><a href="login.html">Log in</a></li>
+                <li class="desktop-signup"><a href="signup.html">Sign Up</a></li>
+                <li class="mobile-login-btn">
+                    <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
+                </li>
                 <li><a href="cart.html"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
@@ -70,6 +88,7 @@
             </div>
         </div>
     </section>
+
 
     <section id="register">
         <div id="rectangle">
@@ -103,7 +122,8 @@
                     <div class="name-row">
                         <div class="half-field">
                             <label for="phone"><b>Phone Number</b></label>
-                            <input type="tel" placeholder="Enter Phone Number" name="phone" id="phone" pattern="[0-9]{7,15}" required>
+                            <input type="tel" placeholder="Enter Phone Number" name="phone" id="phone"
+                                pattern="[0-9]{7,15}" required>
                         </div>
 
                         <div class="half-field">
@@ -112,12 +132,7 @@
                         </div>
                     </div>
 
-                    <!--
-                    <label>
-                        <input type="checkbox" name="remember"
-                            style="margin-bottom:10px; margin-top: 15px;"> Remember me
-                    </label>
-                    -->
+                    <a href="login.html" class="text-link">Already have an account?</a>
 
                     <p>By creating an account you agree to our <a href="#" style="color:dodgerblue">Terms & Privacy</a>.
                     </p>

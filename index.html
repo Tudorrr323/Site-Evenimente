@@ -12,13 +12,27 @@
 <body>
 
     <section id="header">
+        <button id="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navbar-left">
+            <i class="fa-solid fa-bars"></i>
+        </button>
         <div class="header-left">
             <ul id="navbar-left">
+                <li class="burger-logo">
+                    <a href="index.html" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                </li>
+                <li class="mobile-search">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search events..." />
+                        <input type="text" placeholder="Location..." />
+                        <button><i class="fas fa-search"></i></button>
+                    </div>
+                </li>
                 <li><a class="active" href="index.html">Home</a></li>
                 <li><a href="discover_events.html">Discover Events</a></li>
                 <li><a href="my_tickets.html">My Tickets</a></li>
                 <li><a href="virtual_events.html">Virtual Events</a></li>
                 <li><a href="create_events.html">Create Events</a></li>
+                <li><a href="about_us.html">About Us</a></li>
             </ul>
         </div>
 
@@ -30,13 +44,18 @@
 
         <div class="header-right">
             <ul id="navbar-right">
-                <div class="search-bar">
-                    <input type="text" placeholder="Search events..." />
-                    <input type="text" placeholder="Location..." />
-                    <button><i class="fas fa-search"></i></button>
-                </div>
-                <li><a href="login.html">Log in</a></li>
-                <li><a href="signup.html">Sign Up</a></li>
+                <li class="desktop-search">
+                    <div class="search-bar">
+                        <input type="text" placeholder="Search events..." />
+                        <input type="text" placeholder="Location..." />
+                        <button><i class="fas fa-search"></i></button>
+                    </div>
+                </li>
+                <li class="desktop-login"><a href="login.html">Log in</a></li>
+                <li class="desktop-signup"><a href="signup.html">Sign Up</a></li>
+                <li class="mobile-login-btn">
+                    <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
+                </li>
                 <li><a href="cart.html"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
@@ -107,33 +126,55 @@
                 <button type="button" class="transparent-button"
                     style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
             </section>
+            <section class="newsletter">
+                <h3>Abonează-te la newsletter!</h3>
+                <p>Primește cele mai noi evenimente direct pe email.</p>
+                <form class="newsletter-form" action="#" method="POST">
+                    <div class="newsletter-input-wrapper">
+                        <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
+                        <button type="submit">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </section>
         </section>
     </section>
 
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-column">
-                <img src="IMG/logo.png" width="90" height="90" style="display: block; margin: 0 auto 10px auto;">
-                <h3 style="margin-top: 0; text-align: center;">Despre noi</h3>
-                <p>Suntem o platformă dedicată organizării și descoperirii de evenimente de toate tipurile.</p>
+                <center>
+                    <img src="IMG/logo2.png" width="90" height="20" style="margin-bottom: 20px;">
+                    <h3 style="text-align: center;">Despre noi</h3>
+                    <p>Suntem o platformă dedicată organizării și descoperirii de evenimente de toate tipurile.</p>
+                </center>
             </div>
 
             <div class="footer-column">
-                <h3>Linkuri utile</h3>
-                <ul class="footer-policy">
+                <center>
+                    <h3>Linkuri utile</h3>
+                    <ul class="footer-policy">
                         <li><a href="#">Termeni & Condiții</a></li>
                         <li><a href="#">Politica de Confidențialitate</a></li>
                         <li><a href="#">Cookies</a></li>
+                        <li><a href="#">Întrebări Frecvente</a></li>
                         <li><a href="#">Contact</a></li>
-                </ul>
+                    </ul>
+                </center>
             </div>
 
             <div class="footer-column">
                 <h3>Urmărește-ne</h3>
-                <ul>
-                    <li><a href="#">Facebook</a></li>
-                    <li><a href="#">Instagram</a></li>
-                    <li><a href="#">YouTube</a></li>
+                <ul class="social-icons">
+                    <li><a href="https://www.youtube.com/" target="_blank">
+                            <i class="fa-brands fa-youtube"></i></a></li>
+                    <li><a href="https://www.tiktok.com/" target="_blank">
+                            <i class="fa-brands fa-tiktok"></i></a></li>
+                    <li><a href="https://www.instagram.com/" target="_blank">
+                            <i class="fa-brands fa-instagram"></i></a></li>
+                    <li><a href="https://www.facebook.com/" target="_blank">
+                            <i class="fa-brands fa-facebook"></i></a></li>
                 </ul>
             </div>
         </div>

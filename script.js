@@ -44,3 +44,12 @@ document.getElementById('mobile-login-button').addEventListener('click', () => {
     // De exemplu redirecționează pe pagina login
     window.location.href = 'login.html';
 });
+
+const navLinks = document.querySelectorAll('#navbar-left a, #navbar-right a');
+
+  navLinks.forEach(link => {
+    // Compară linkul cu locația paginii
+    if (link.href === window.location.href) {
+      link.classList.add('active');
+    }
+  });

@@ -1,0 +1,16 @@
+INSERT INTO categories (id_cat, denumire) VALUES
+(1, 'Music'),
+(2, 'Stand-up'),
+(3, 'Conferences'),
+(4, 'Beach'),
+(5, 'Theatre'),
+(6, 'Movies'),
+(7, 'Festival'),
+(8, 'Food & Drink'),
+(9, 'Party'),
+(10, 'Kids'),
+(11, 'Sports'),
+(12, 'Education'),
+(13, 'Business'),
+(14, 'Art'),
+(15, 'Tech');

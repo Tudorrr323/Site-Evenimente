@@ -1,12 +1,81 @@
+<?php
+session_start();
+
+// Verificăm dacă utilizatorul este logat
+if (!isset($_SESSION["user_fname"])) {
+    header("Location: login.php");
+    exit();
+}
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Eveniment</title>
+    <title>Profile User</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .profile-container {
+            max-width: 600px;
+            margin-top: 180px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #810808;
+        }
+
+        .profile-info {
+            margin-top: 30px;
+        }
+
+        .profile-info p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .btn-group {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .btn-group a {
+            display: inline-block;
+            margin: 8px;
+            padding: 10px 20px;
+            background-color: #810808;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .btn-group a:hover {
+            background-color: #5a0606;
+        }
+    </style>
 </head>
 
 <body>
@@ -18,7 +87,7 @@
         <div class="header-left">
             <ul id="navbar-left">
                 <li class="burger-logo">
-                    <a href="index.html" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                    <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 <li class="mobile-search">
                     <div class="search-bar">
                         <input type="text" placeholder="Search events..." />
@@ -27,17 +96,17 @@
                     </div>
                 </li>
                 </li>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="discover_events.html">Discover Events</a></li>
-                <li><a href="my_tickets.html">My Tickets</a></li>
-                <li><a href="virtual_events.html">Virtual Events</a></li>
-                <li><a href="create_events.html">Create Events</a></li>
-                <li><a href="about_us.html">About Us</a></li>
+                <li><a href="index.php">Home</a></li>
+                <li><a href="discover_events.php">Discover Events</a></li>
+                <li><a href="my_tickets.php">My Tickets</a></li>
+                <li><a href="virtual_events.php">Virtual Events</a></li>
+                <li><a href="create_events.php">Create Events</a></li>
+                <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
 
         <div id="logo">
-            <a href="index.html">
+            <a href="index.php">
                 <img src="IMG/logo.png" alt="Logo" width="150" height="150">
             </a>
         </div>
@@ -51,12 +120,20 @@
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                <li class="desktop-login"><a href="login.html">Log in</a></li>
-                <li class="desktop-signup"><a href="signup.html">Sign Up</a></li>
-                <li class="mobile-login-btn">
-                    <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
-                </li>
-                <li><a href="cart.html"><i class="fas fa-shopping-bag"></i></a></li>
+                <?php if (isset($_SESSION["user_fname"])): ?>
+                    <li class="greeting" style="padding: 10px; color: #1a1a1a;">
+                    <a href="profile.php" style="color: #1a1a1a; text-decoration: none;">    
+                    Salut, 
+                        <?= htmlspecialchars($_SESSION["user_fname"]) ?>!
+                    </li>
+                <?php else: ?>
+                    <li class="desktop-login"><a href="login.php">Log in</a></li>
+                    <li class="desktop-signup"><a href="signup.php">Sign Up</a></li>
+                    <li class="mobile-login-btn">
+                        <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
+                    </li>
+                <?php endif; ?>
+                <li><a href="cart.php"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
     </section>
@@ -86,60 +163,27 @@
         </div>
     </section>
 
-    <section id="hero">
-        <section class="main-content">
-            <section class="event-section">
-                <h2>Evenimente Populare</h2>
-                <div class="event-grid">
-                    <div class="event-card">
-                        <img src="IMG/event1.png" alt="Eveniment 1">
-                        <h3>BEACH, PLEASE! Festival 2025</h3>
-                        <p><i class="fa-solid fa-location-dot"></i> Costinești
-                            <br /><i class="fa-solid fa-ticket"></i> 699 - 100000 lei
-                            <br /><i class="fa-solid fa-clock"></i> 9 - 13 iulie 2025
-                        </p>
-                    </div>
-                    <div class="event-card">
-                        <img src="IMG/event2.png" alt="Eveniment 2">
-                        <h3>BEACH, PLEASE! Festival 2026</h3>
-                        <p><i class="fa-solid fa-location-dot"></i> Costinești
-                            <br /><i class="fa-solid fa-ticket"></i> 599 - 1999 lei
-                            <br /><i class="fa-solid fa-clock"></i> 8 - 12 iulie 2026
-                        </p>
-                    </div>
-                    <div class="event-card">
-                        <img src="IMG/event3.jpg" alt="Eveniment 3">
-                        <h3>Eveniment 3</h3>
-                        <p>Descriere scurtă</p>
-                    </div>
-                    <div class="event-card">
-                        <img src="IMG/event4.jpg" alt="Eveniment 4">
-                        <h3>Eveniment 4</h3>
-                        <p>Descriere scurtă</p>
-                    </div>
+    <center>
+    <div class="profile-container">
+        <h2>Profilul Meu</h2>
 
-                </div>
+        <div class="profile-info">
+            <p><strong>Id:</strong> <?= htmlspecialchars($_SESSION["user_id"] ?? "N/A") ?></p>
+            <p><strong>Prenume:</strong> <?= htmlspecialchars($_SESSION["user_fname"] ?? "N/A") ?></p>
+            <p><strong>Nume:</strong> <?= htmlspecialchars($_SESSION["user_lname"] ?? "N/A") ?></p>
+            <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION["user_email"] ?? "N/A") ?></p>
+            <p><strong>Telefon:</strong> <?= htmlspecialchars($_SESSION["user_phone"] ?? "N/A") ?></p>
+            <p><strong>Data nașterii:</strong> <?= htmlspecialchars($_SESSION["user_bday"] ?? "N/A") ?></p>
+            <p><strong>Rol:</strong> <?= htmlspecialchars($_SESSION["user_role"] ?? "N/A") ?></p>
+        </div>
 
-            </section>
-            <section id="rectangle_bar">
-                <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-                <button type="button" class="transparent-button"
-                    style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-            </section>
-            <section class="newsletter">
-                <h3>Abonează-te la newsletter!</h3>
-                <p>Primește cele mai noi evenimente direct pe email.</p>
-                <form class="newsletter-form" action="#" method="POST">
-                    <div class="newsletter-input-wrapper">
-                        <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
-                        <button type="submit">
-                            <i class="fa-solid fa-chevron-right"></i>
-                        </button>
-                    </div>
-                </form>
-            </section>
-        </section>
-    </section>
+        <div class="btn-group">
+            <a href="logout.php">Logout</a>
+            <a href="reset_password.php">Schimbă parola</a>
+            <a href="change_email.php">Schimbă email</a>
+        </div>
+    </div>
+    </center>
 
     <footer class="footer">
         <div class="footer-container">

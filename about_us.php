@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -18,7 +21,7 @@
         <div class="header-left">
             <ul id="navbar-left">
                 <li class="burger-logo">
-                    <a href="index.html" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                    <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 </li>
                 <li class="mobile-search">
                     <div class="search-bar">
@@ -27,17 +30,17 @@
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="discover_events.html">Discover Events</a></li>
-                <li><a href="my_tickets.html">My Tickets</a></li>
-                <li><a href="virtual_events.html">Virtual Events</a></li>
-                <li><a href="create_events.html">Create Events</a></li>
-                <li><a href="about_us.html">About Us</a></li>
+                <li><a href="index.php">Home</a></li>
+                <li><a href="discover_events.php">Discover Events</a></li>
+                <li><a href="my_tickets.php">My Tickets</a></li>
+                <li><a href="virtual_events.php">Virtual Events</a></li>
+                <li><a href="create_events.php">Create Events</a></li>
+                <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
 
         <div id="logo">
-            <a href="index.html">
+            <a href="index.php">
                 <img src="IMG/logo.png" alt="Logo" width="150" height="150">
             </a>
         </div>
@@ -51,12 +54,20 @@
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                <li class="desktop-login"><a href="login.html">Log in</a></li>
-                <li class="desktop-signup"><a href="signup.html">Sign Up</a></li>
-                <li class="mobile-login-btn">
-                    <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
-                </li>
-                <li><a href="cart.html"><i class="fas fa-shopping-bag"></i></a></li>
+                <?php if (isset($_SESSION["user_fname"])): ?>
+                    <li class="greeting" style="padding: 10px; color: #1a1a1a;">
+                    <a href="profile.php" style="color: #1a1a1a; text-decoration: none;">    
+                    Salut, 
+                        <?= htmlspecialchars($_SESSION["user_fname"]) ?>!
+                    </li>
+                <?php else: ?>
+                    <li class="desktop-login"><a href="login.php">Log in</a></li>
+                    <li class="desktop-signup"><a href="signup.php">Sign Up</a></li>
+                    <li class="mobile-login-btn">
+                        <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
+                    </li>
+                <?php endif; ?>
+                <li><a href="cart.php"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
     </section>

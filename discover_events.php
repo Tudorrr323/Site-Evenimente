@@ -1,3 +1,6 @@
+<?php
+session_start();
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -18,7 +21,7 @@
         <div class="header-left">
             <ul id="navbar-left">
                 <li class="burger-logo">
-                    <a href="index.html" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                    <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 </li>
                 <li class="mobile-search">
                     <div class="search-bar">
@@ -27,17 +30,17 @@
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="discover_events.html">Discover Events</a></li>
-                <li><a href="my_tickets.html">My Tickets</a></li>
-                <li><a href="virtual_events.html">Virtual Events</a></li>
-                <li><a href="create_events.html">Create Events</a></li>
-                <li><a href="about_us.html">About Us</a></li>
+                <li><a href="index.php">Home</a></li>
+                <li><a href="discover_events.php">Discover Events</a></li>
+                <li><a href="my_tickets.php">My Tickets</a></li>
+                <li><a href="virtual_events.php">Virtual Events</a></li>
+                <li><a href="create_events.php">Create Events</a></li>
+                <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
 
         <div id="logo">
-            <a href="index.html">
+            <a href="index.php">
                 <img src="IMG/logo.png" alt="Logo" width="150" height="150">
             </a>
         </div>
@@ -51,12 +54,20 @@
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                <li class="desktop-login"><a href="login.html">Log in</a></li>
-                <li class="desktop-signup"><a href="signup.html">Sign Up</a></li>
-                <li class="mobile-login-btn">
-                    <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
-                </li>
-                <li><a href="cart.html"><i class="fas fa-shopping-bag"></i></a></li>
+                <?php if (isset($_SESSION["user_fname"])): ?>
+                    <li class="greeting" style="padding: 10px; color: #1a1a1a;">
+                    <a href="profile.php" style="color: #1a1a1a; text-decoration: none;">    
+                    Salut, 
+                        <?= htmlspecialchars($_SESSION["user_fname"]) ?>!
+                    </li>
+                <?php else: ?>
+                    <li class="desktop-login"><a href="login.php">Log in</a></li>
+                    <li class="desktop-signup"><a href="signup.php">Sign Up</a></li>
+                    <li class="mobile-login-btn">
+                        <button id="mobile-login-button"><i class="fa-solid fa-user"></i></button>
+                    </li>
+                <?php endif; ?>
+                <li><a href="cart.php"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
     </section>
@@ -95,9 +106,11 @@
                     <p class="event-price"><i class="fas fa-ticket-alt"></i> 699 - 100000 lei</p>
                     <p class="event-location"><i class="fas fa-map-marker-alt"></i> Costinești</p>
                     <p class="event-date"><i class="fas fa-calendar-alt"></i> 9 - 13 iulie 2025</p>
-                    <p class="event-description">ATENTIE! Varsta minima pentru a participa la BEACH, PLEASE! 2025 este
+                    <p class="event-description">ATENTIE! Varsta minima pentru a participa la BEACH, PLEASE! 2025
+                        este
                         14 ani.
-                        Minorii intre 14 si 15 ani trebuie sa fie obligatoriu insotiti de un parinte sau tutore legal.
+                        Minorii intre 14 si 15 ani trebuie sa fie obligatoriu insotiti de un parinte sau tutore
+                        legal.
                         Parintele/tutorele legal trebuie sa aiba, de asemenea...
                     </p>
                     <div class="event-categories">
@@ -106,9 +119,10 @@
                         <span class="category-tag">Beach</span>
                         <span class="category-tag">Party</span>
                     </div>
-                    <button class="buy-ticket-btn"
-                        style="margin-top: -30px; width: 30%; float: right; margin-right: 0;">
-                        Ia bilet</button>
+                    <a href="event1.php" class="buy-ticket-btn" style="margin-top: -30px; width: 30%; float: right; display: inline-block; 
+                    text-decoration: none; text-align: center; color: white;">
+                        Ia bilet
+                    </a>
                 </div>
             </div>
             <div class="event-card-horizontal">
@@ -129,9 +143,10 @@
                         <span class="category-tag">Beach</span>
                         <span class="category-tag">Party</span>
                     </div>
-                    <button class="buy-ticket-btn"
-                        style="margin-top: -30px; width: 30%; float: right; margin-right: 0;">
-                        Ia bilet</button>
+                    <a href="event2.php" class="buy-ticket-btn" style="margin-top: -30px; width: 30%; float: right; display: inline-block; 
+                    text-decoration: none; text-align: center; color: white;">
+                        Ia bilet
+                    </a>
                 </div>
 
             </div>

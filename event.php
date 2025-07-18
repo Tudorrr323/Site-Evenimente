@@ -1,6 +1,27 @@
-<?php session_start(); 
-require_once 'includes/dbh.inc.php';
+<?php
+session_start();
+require_once "includes/dbh.inc.php";
+
+if (!isset($_GET['id_event'])) {
+    die("Evenimentul nu a fost specificat.");
+}
+
+$event_id = intval($_GET['id_event']);
+
+$stmt = $pdo->prepare("SELECT * FROM event WHERE id_event = ?");
+$stmt->execute([$event_id]);
+$event = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$stmtBilete = $pdo->prepare("SELECT * FROM bilet WHERE id_event = ?");
+$stmtBilete->execute([$event_id]);
+$bilete = $stmtBilete->fetchAll(PDO::FETCH_ASSOC);
+
+if (!$event) {
+    echo "Evenimentul nu a fost găsit. Query folosit: SELECT * FROM event WHERE id_event = $event_id";
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,6 +31,12 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        .event-card-horizontal:hover {
+        transform: none !important;
+    }
+    </style>
 </head>
 
 <body>
@@ -30,7 +57,7 @@ require_once 'includes/dbh.inc.php';
                     </div>
                 </li>
                 </li>
-                <li><a class="active" href="index.php">Home</a></li>
+                <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
@@ -101,59 +128,64 @@ require_once 'includes/dbh.inc.php';
             </div>
         </div>
     </section>
-    <section id="hero">
-        <section class="main-content">
-            <?php
-            try {
-                $stmt = $pdo->query("SELECT * FROM event ORDER BY date ASC");
-                $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
-            }
 
-            echo '
-            <h2 style="text-align: center; position: relative; margin-top: 20px; margin-bottom: 40px;">Evenimente Populare</h2>
-            <section class="event-section">
-            <div class="event-grid">
-            ';
+    <section class="main-content">
+        <div class="event-card-horizontal">
+            <div class="event-slider" style="position: relative; width: 800px; height: 1100px; overflow: hidden;">
+                <img src="IMG/<?= htmlspecialchars($event['imgpath']) ?>" class="event-image active-slide"
+                    style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            </div>
 
-            if ($events) {
-                foreach ($events as $event) {
-                    // pregătește datele
-                    $id = htmlspecialchars($event['id_event']);
-                    $name = htmlspecialchars($event['name']);
-                    $location = htmlspecialchars($event['location']);
-                    $city = htmlspecialchars($event['city']);
-                    $date = date("j F Y", strtotime($event['date']));
-                    $organiser = htmlspecialchars($event['organiser']);
-                    $imgpath = htmlspecialchars($event['imgpath']);
-                    $description = ($event['description']);
+            <div class="event-details">
+                <h2 class="event-title"><?= htmlspecialchars($event['name']) ?></h2>
+                <div class="event-location"><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($event['location']) ?></div>
+                <div class="event-date"><i class="fas fa-clock"></i> Start: <?= htmlspecialchars($event['date']) ?></div>
+                <div class="event-description"><?= $event['description'] ?></div>
 
-                    echo '
-                    <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
-                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                            <h3 class="event-title">' . $name . '</h3>
-                            <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
-                            <p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>
-                            <p class="event-date" style="margin: 4px 0; font-size:18px;"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        </div>
-                    </a>
-                    ';
-                }
-            } else {
-                echo '<p>Nu există evenimente disponibile.</p>';
-            }
-            ?>
-        </section>
+                <div class="event-categories">
+                    <span class="category-tag">Music</span>
+                    <span class="category-tag">Festival</span>
+                    <span class="category-tag">Beach</span>
+                    <span class="category-tag">Party</span>
+                </div>
+
+                <div class="ticket-options" style="margin-top: 20px;">
+                    <h4 style="margin-bottom: 10px;">Tipuri de bilete:</h4>
+                    <ul>
+                        <?php foreach ($bilete as $bilet): ?>
+                            <li>
+                                <span class="ticket-label"><?= htmlspecialchars($bilet['denumire']) ?></span>
+                                <div class="ticket-actions">
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        value="0" 
+                                        data-id="<?= $bilet['id_bilet'] ?>" 
+                                        data-type="<?= htmlspecialchars($bilet['denumire']) ?>" 
+                                        data-price="<?= (int)$bilet['pret'] ?>" 
+                                        class="ticket-qty">
+                                    <span class="ticket-total-price"><?= (int)$bilet['pret'] ?> RON</span>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+
+                    <button class="buy-ticket-btn" id="finalize-purchase" style="width: 30%; float: right;">Cumpără bilet</button>
+
+                    <form method="post" action="includes/start_order.php" id="ticket-form">
+                        <input type="hidden" name="tickets" id="tickets-json">
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section id="rectangle_bar">
         <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
+        <button type="button" class="transparent-button" style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE
+            ACUM!</button>
+    </section>
+    <section class="newsletter">
         <h3>Abonează-te la newsletter!</h3>
         <p>Primește cele mai noi evenimente direct pe email.</p>
         <form class="newsletter-form" action="#" method="POST">
@@ -165,7 +197,6 @@ require_once 'includes/dbh.inc.php';
             </div>
         </form>
     </section>
-
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-column">
@@ -210,6 +241,43 @@ require_once 'includes/dbh.inc.php';
     </footer>
 
     <script src="script.js"></script>
+
+    <script>
+document.getElementById("finalize-purchase").addEventListener("click", function () {
+    const ticketInputs = document.querySelectorAll('.ticket-qty');
+    const tickets = [];
+
+    ticketInputs.forEach(input => {
+        const quantity = parseInt(input.value);
+        if (quantity > 0) {
+            const id_bilet = input.getAttribute('data-id');
+            const type = input.getAttribute('data-type').trim();
+            const price = parseInt(input.getAttribute('data-price'));
+
+            tickets.push({ id_bilet: id_bilet, type: type, price: price, quantity: quantity });
+        }
+    });
+
+    if (tickets.length === 0) {
+        alert("Te rugăm să selectezi cel puțin un bilet.");
+        return;
+    }
+
+    // Salvează biletele în localStorage ca backup
+    localStorage.setItem('cart', JSON.stringify(tickets));
+
+    // Salvează și detalii eveniment
+    localStorage.setItem('eventDetails', JSON.stringify({
+        location: "<?= addslashes($event['location']) ?>",
+        date: "<?= addslashes($event['date']) ?>",
+        id_event: <?= $event['id_event'] ?>
+    }));
+
+    // Trimite formularul către start_order.php
+    document.getElementById('tickets-json').value = JSON.stringify(tickets);
+    document.getElementById('ticket-form').submit();
+});
+</script>
 </body>
 
 </html>

@@ -1,13 +1,12 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const datePicker = document.getElementById("event-date-picker");
+  const datePicker = document.getElementById("event-date-picker");
 
-    datePicker.addEventListener("change", function () {
-        const selectedDate = this.value; // Format: YYYY-MM-DD
-        if (selectedDate) {
-            // Redirecționează către o pagină cu data selectată ca parametru
-            window.location.href = `events_by_date.html?date=${selectedDate}`;
-        }
-    });
+  datePicker.addEventListener("change", function () {
+    const selectedDate = this.value;
+    if (selectedDate) {
+      window.location.href = `events_by_date.php?date=${selectedDate}`;
+    }
+  });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,15 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.getElementById('mobile-login-button').addEventListener('click', () => {
-    // De exemplu redirecționează pe pagina login
-    window.location.href = 'login.html';
+  window.location.href = 'login.php';
 });
 
 const navLinks = document.querySelectorAll('#navbar-left a, #navbar-right a');
 
-  navLinks.forEach(link => {
-    // Compară linkul cu locația paginii
-    if (link.href === window.location.href) {
-      link.classList.add('active');
-    }
-  });
+navLinks.forEach(link => {
+  // Compară linkul cu locația paginii
+  if (link.href === window.location.href) {
+    link.classList.add('active');
+  }
+});

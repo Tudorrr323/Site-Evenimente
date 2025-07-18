@@ -1,4 +1,5 @@
-<?php session_start(); 
+<?php
+session_start();
 require_once 'includes/dbh.inc.php';
 ?>
 <!DOCTYPE html>
@@ -10,6 +11,16 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        .event-description {
+            display: -webkit-box;
+            -webkit-line-clamp: 10;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
 </head>
 
 <body>
@@ -22,6 +33,7 @@ require_once 'includes/dbh.inc.php';
             <ul id="navbar-left">
                 <li class="burger-logo">
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                </li>
                 <li class="mobile-search">
                     <div class="search-bar">
                         <input type="text" placeholder="Events..." />
@@ -29,9 +41,8 @@ require_once 'includes/dbh.inc.php';
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                </li>
-                <li><a class="active" href="index.php">Home</a></li>
-                <li><a href="discover_events.php">Discover Events</a></li>
+                <li><a href="index.php">Home</a></li>
+                <li><a class="active" href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
                 <li><a href="create_events.php">Create Events</a></li>
@@ -101,6 +112,7 @@ require_once 'includes/dbh.inc.php';
             </div>
         </div>
     </section>
+
     <section id="hero">
         <section class="main-content">
             <?php
@@ -110,12 +122,6 @@ require_once 'includes/dbh.inc.php';
             } catch (PDOException $e) {
                 echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
             }
-
-            echo '
-            <h2 style="text-align: center; position: relative; margin-top: 20px; margin-bottom: 40px;">Evenimente Populare</h2>
-            <section class="event-section">
-            <div class="event-grid">
-            ';
 
             if ($events) {
                 foreach ($events as $event) {
@@ -130,40 +136,44 @@ require_once 'includes/dbh.inc.php';
                     $description = ($event['description']);
 
                     echo '
-                    <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
-                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
+                    <div class="event-card-horizontal">
+                        <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
+                        <div class="event-details">
                             <h3 class="event-title">' . $name . '</h3>
-                            <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
-                            <p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>
-                            <p class="event-date" style="margin: 4px 0; font-size:18px;"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
+                            <p class="event-location"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>
+                            <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
+                            <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
+                            <p class="event-description">' . $description . '</p>
+                            <a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                            text-decoration: none; text-align: center; color: white;">
+                                Ia bilet
+                            </a>
                         </div>
-                    </a>
+                    </div>
                     ';
                 }
             } else {
                 echo '<p>Nu există evenimente disponibile.</p>';
             }
             ?>
+            <section id="rectangle_bar">
+                <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
+                <button type="button" class="transparent-button"
+                    style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
+            </section>
+            <section class="newsletter">
+                <h3>Abonează-te la newsletter!</h3>
+                <p>Primește cele mai noi evenimente direct pe email.</p>
+                <form class="newsletter-form" action="#" method="POST">
+                    <div class="newsletter-input-wrapper">
+                        <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
+                        <button type="submit">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </section>
         </section>
-    </section>
-
-    <section id="rectangle_bar">
-        <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
-        <h3>Abonează-te la newsletter!</h3>
-        <p>Primește cele mai noi evenimente direct pe email.</p>
-        <form class="newsletter-form" action="#" method="POST">
-            <div class="newsletter-input-wrapper">
-                <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
-                <button type="submit">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
-            </div>
-        </form>
     </section>
 
     <footer class="footer">

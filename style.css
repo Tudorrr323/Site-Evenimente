@@ -337,12 +337,12 @@ body {
 
 .main-content {
     padding-top: 180px;
-    /* header (120) + subheader (60) */
+    flex: 1;
 }
 
 #register {
     background-image: url("IMG/register.jpg");
-    height: 100vh;
+    height: 1000px;
     width: 100%;
     margin-top: 170px;
     background-size: cover;
@@ -378,6 +378,7 @@ body {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    margin-top: 90px;
 }
 
 #rectangle_bar {
@@ -393,13 +394,13 @@ body {
 }
 
 * {
-    box-sizing: border-box
+    box-sizing: border-box;
 }
 
 .container input[type=text],
 .container input[type=password],
 .container input[type=email],
-.container input[type=tel],
+.container input[type=phone],
 .container input[type=date] {
     width: 100%;
     padding: 15px;
@@ -412,7 +413,7 @@ body {
 input[type=text]:focus,
 input[type=password]:focus,
 input[type=email]:focus,
-input[type=tel]:focus,
+input[type=phone]:focus,
 input[type=date]:focus {
     background-color: #ddd;
     outline: none;
@@ -474,13 +475,15 @@ resetpassbtn {
 .name-row {
     display: flex;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .half-field {
     flex: 1;
+    min-width: 200px;
 }
 
-.half-field input[type="text"] {
+.half-field input {
     width: 100%;
 }
 
@@ -600,7 +603,7 @@ resetpassbtn {
         padding: 20px 0;
         position: relative;
         margin-top: 100px;
-        
+
     }
 
     #navbar-left .burger-logo img {
@@ -935,7 +938,7 @@ resetpassbtn {
 
 .event-card-horizontal {
     display: flex;
-    align-items: flex-start;
+    align-items: stretch; /* important */
     background-color: #ffffff;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -951,7 +954,7 @@ resetpassbtn {
 
 .event-image {
     width: 300px;
-    height: 320px;
+    height: 100%; /* important */
     object-fit: cover;
 }
 
@@ -1025,4 +1028,55 @@ resetpassbtn {
 .buy-ticket-btn:active {
     transform: scale(0.97);
     background-color: #5e0505;
+}
+
+#password-error {
+    color: #e74c3c;
+    background-color: #fdecea;
+    border: 1px solid #e0b4b4;
+    padding: 8px 12px;
+    border-radius: 5px;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+.event-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.event-card-link:hover .event-card {
+    transform: scale(1.03);
+}
+
+.ticket-options ul {
+    list-style: none;
+    padding: 0;
+}
+
+.ticket-options li {
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    background-color: #f0f0f0;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.ticket-options span {
+    flex: 1;
+    font-weight: 500;
+    color: #333;
+}
+
+.ticket-options input[type="number"] {
+    width: 70px;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
 }

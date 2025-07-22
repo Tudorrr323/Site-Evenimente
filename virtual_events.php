@@ -1,6 +1,25 @@
-<?php session_start(); 
+<?php
+session_start();
 require_once 'includes/dbh.inc.php';
+
+// Determinăm pagina curentă, default 1
+$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+$eventsPerPage = 10;
+$offset = ($page - 1) * $eventsPerPage;
+
+// Număr total evenimente (pentru paginare)
+$totalEventsStmt = $pdo->query("SELECT COUNT(*) FROM event WHERE type = 'virtual'");
+$totalEvents = $totalEventsStmt->fetchColumn();
+$totalPages = ceil($totalEvents / $eventsPerPage);
+
+// Preluare evenimente pentru pagina curentă cu LIMIT
+$stmt = $pdo->prepare("SELECT * FROM event WHERE type = 'virtual' ORDER BY date ASC LIMIT :limit OFFSET :offset");
+$stmt->bindValue(':limit', $eventsPerPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -10,6 +29,53 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        .event-description {
+            display: -webkit-box;
+            -webkit-line-clamp: 10;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event-image-wrapper {
+            width: 400px;
+            height: 300px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;      /* vertical centrare */
+            justify-content: center;  /* orizontal centrare */
+            background-color: #fff;   /* sau altă culoare */
+        }
+
+        .event-image-wrapper img.event-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;  /* păstrează proporțiile și se încadrează complet */
+        }
+
+        .pagination a.pagination-btn {
+            margin: 0 5px;
+            padding: 8px 12px;
+            background-color: #ffffffff;
+            color: black;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .pagination strong {
+            margin: 0 5px;
+            padding: 8px 12px;
+            background-color: #000000ff;
+            color: white;
+            border-radius: 4px;
+        }
+
+        .pagination a.pagination-btn:hover {
+            background-color: #a0a0a0ff;
+        }
+    </style>
 </head>
 
 <body>
@@ -22,6 +88,7 @@ require_once 'includes/dbh.inc.php';
             <ul id="navbar-left">
                 <li class="burger-logo">
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
+                </li>
                 <li class="mobile-search">
                     <div class="search-bar">
                         <input type="text" placeholder="Events..." />
@@ -29,11 +96,10 @@ require_once 'includes/dbh.inc.php';
                         <button><i class="fas fa-search"></i></button>
                     </div>
                 </li>
-                </li>
-                <li><a class="active" href="index.php">Home</a></li>
+                <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
-                <li><a href="virtual_events.php">Virtual Events</a></li>
+                <li><a class="active" href="virtual_events.php">Virtual Events</a></li>
                 <li><a href="create_events.php">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
@@ -101,74 +167,93 @@ require_once 'includes/dbh.inc.php';
             </div>
         </div>
     </section>
+
     <section id="hero">
         <section class="main-content">
             <?php
-            try {
-                $stmt = $pdo->query("SELECT * FROM event ORDER BY date ASC");
-                $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
-            }
-
-            echo '
-            <h2 style="text-align: center; position: relative; margin-top: 20px; margin-bottom: 40px;">Evenimente Populare</h2>
-            <section class="event-section">
-            <div class="event-grid">
-            ';
-
             if ($events) {
                 foreach ($events as $event) {
-                    // pregătește datele
-                    $id = htmlspecialchars($event['id_event']);
-                    $name = htmlspecialchars($event['name']);
-                    $location = htmlspecialchars($event['location']);
-                    $city = htmlspecialchars($event['city']);
-                    $date = date("j F Y", strtotime($event['date']));
-                    $organiser = htmlspecialchars($event['organiser']);
-                    $imgpath = htmlspecialchars($event['imgpath']);
-                    $description = ($event['description']);
+                $id = $event['id_event'];
+                $name = htmlspecialchars($event['name']);
+                $location = htmlspecialchars($event['location']);
+                $city = htmlspecialchars($event['city']);
+                $date = date("j F Y", strtotime($event['date']));
+                $organiser = htmlspecialchars($event['organiser']);
+                $imgpath = htmlspecialchars($event['imgpath']);
+                $description = nl2br($event['description']);
 
-                    $isVirtual = ($event['type'] === 'virtual');
+                $isVirtual = ($event['type'] === 'virtual');
 
-                    echo '
-                    <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
-                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                            <h3 class="event-title">' . $name . '</h3>
-                            <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>';
-                            if (!$isVirtual) {
+                $stmtCat = $pdo->prepare("
+                    SELECT c.denumire 
+                    FROM event_categories ec
+                    JOIN categories c ON ec.id_cat = c.id_cat
+                    WHERE ec.id_event = ?
+                ");
+                $stmtCat->execute([$id]);
+                $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
+
+                $categoryTagsHtml = '';
+                foreach ($eventCategories as $catName) {
+                    $categoryTagsHtml .= '<span class="category-tag">' . htmlspecialchars($catName) . '</span> ';
+                }
+
+                echo '
+                <div class="event-card-horizontal">
+                    <div class="event-image-wrapper" style="width: 400px; height: 300px; overflow: hidden;">
+                        <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
+                    </div>
+                    <div class="event-details">
+                        <h3 class="event-title">' . $name . '</h3>';
+                        if (!$isVirtual) {
                                 echo '<p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>';
                             }
                         echo '
-                            <p class="event-date" style="margin: 4px 0; font-size:18px;"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        </div>
-                    </a>
-                    ';
+                        <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
+                        <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
+                        <p class="event-description">' . $description . '</p>
+                        <div class="event-categories">' . $categoryTagsHtml . '</div>
+                        <a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                        text-decoration: none; text-align: center; color: white;">
+                            Ia bilet
+                        </a>
+                    </div>
+                </div>';
                 }
-            } else {
+            }
+            else {
                 echo '<p>Nu există evenimente disponibile.</p>';
             }
             ?>
-        </section>
-    </section>
-
-    <section id="rectangle_bar">
-        <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
-        <h3>Abonează-te la newsletter!</h3>
-        <p>Primește cele mai noi evenimente direct pe email.</p>
-        <form class="newsletter-form" action="#" method="POST">
-            <div class="newsletter-input-wrapper">
-                <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
-                <button type="submit">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
+            <div class="pagination" style="margin-top: 30px; text-align: center;">
+                <?php
+                for ($i = 1; $i <= $totalPages; $i++) {
+                    if ($i == $page) {
+                        echo '<strong>' . $i . '</strong>';
+                    } else {
+                        echo '<a class="pagination-btn" href="?page=' . $i . '">' . $i . '</a>';
+                    }
+                }
+                ?>
             </div>
-        </form>
+            <section id="rectangle_bar">
+                <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
+                <button type="button" class="transparent-button"
+                    style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
+            </section>
+            <section class="newsletter">
+                <h3>Abonează-te la newsletter!</h3>
+                <p>Primește cele mai noi evenimente direct pe email.</p>
+                <form class="newsletter-form" action="#" method="POST">
+                    <div class="newsletter-input-wrapper">
+                        <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
+                        <button type="submit">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </section>
     </section>
 
     <footer class="footer">

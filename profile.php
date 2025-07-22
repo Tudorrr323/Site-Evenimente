@@ -1,15 +1,82 @@
-<?php session_start(); 
+<?php
+session_start();
 require_once 'includes/dbh.inc.php';
+
+// Verificăm dacă utilizatorul este logat
+if (!isset($_SESSION["user_fname"])) {
+    header("Location: login.php");
+    exit();
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Eveniment</title>
+    <title>Profile User</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .profile-container {
+            max-width: 600px;
+            margin-top: 180px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #810808;
+        }
+
+        .profile-info {
+            margin-top: 30px;
+        }
+
+        .profile-info p {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .btn-group {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .btn-group a {
+            display: inline-block;
+            margin: 8px;
+            padding: 10px 20px;
+            background-color: #810808;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .btn-group a:hover {
+            background-color: #5a0606;
+        }
+    </style>
 </head>
 
 <body>
@@ -30,7 +97,7 @@ require_once 'includes/dbh.inc.php';
                     </div>
                 </li>
                 </li>
-                <li><a class="active" href="index.php">Home</a></li>
+                <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
@@ -101,75 +168,28 @@ require_once 'includes/dbh.inc.php';
             </div>
         </div>
     </section>
-    <section id="hero">
-        <section class="main-content">
-            <?php
-            try {
-                $stmt = $pdo->query("SELECT * FROM event ORDER BY date ASC");
-                $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
-            }
 
-            echo '
-            <h2 style="text-align: center; position: relative; margin-top: 20px; margin-bottom: 40px;">Evenimente Populare</h2>
-            <section class="event-section">
-            <div class="event-grid">
-            ';
+    <center>
+    <div class="profile-container">
+        <h2>Profilul Meu</h2>
 
-            if ($events) {
-                foreach ($events as $event) {
-                    // pregătește datele
-                    $id = htmlspecialchars($event['id_event']);
-                    $name = htmlspecialchars($event['name']);
-                    $location = htmlspecialchars($event['location']);
-                    $city = htmlspecialchars($event['city']);
-                    $date = date("j F Y", strtotime($event['date']));
-                    $organiser = htmlspecialchars($event['organiser']);
-                    $imgpath = htmlspecialchars($event['imgpath']);
-                    $description = ($event['description']);
+        <div class="profile-info">
+            <p><strong>Id:</strong> <?= htmlspecialchars($_SESSION["user_id"] ?? "N/A") ?></p>
+            <p><strong>Prenume:</strong> <?= htmlspecialchars($_SESSION["user_fname"] ?? "N/A") ?></p>
+            <p><strong>Nume:</strong> <?= htmlspecialchars($_SESSION["user_lname"] ?? "N/A") ?></p>
+            <p><strong>Email:</strong> <?= htmlspecialchars($_SESSION["user_email"] ?? "N/A") ?></p>
+            <p><strong>Telefon:</strong> <?= htmlspecialchars($_SESSION["user_phone"] ?? "N/A") ?></p>
+            <p><strong>Data nașterii:</strong> <?= htmlspecialchars($_SESSION["user_bday"] ?? "N/A") ?></p>
+            <p><strong>Rol:</strong> <?= htmlspecialchars($_SESSION["user_role"] ?? "N/A") ?></p>
+        </div>
 
-                    $isVirtual = ($event['type'] === 'virtual');
-
-                    echo '
-                    <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
-                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                            <h3 class="event-title">' . $name . '</h3>
-                            <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>';
-                            if (!$isVirtual) {
-                                echo '<p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>';
-                            }
-                        echo '
-                            <p class="event-date" style="margin: 4px 0; font-size:18px;"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        </div>
-                    </a>
-                    ';
-                }
-            } else {
-                echo '<p>Nu există evenimente disponibile.</p>';
-            }
-            ?>
-        </section>
-    </section>
-
-    <section id="rectangle_bar">
-        <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
-        <h3>Abonează-te la newsletter!</h3>
-        <p>Primește cele mai noi evenimente direct pe email.</p>
-        <form class="newsletter-form" action="#" method="POST">
-            <div class="newsletter-input-wrapper">
-                <input type="email" name="email" placeholder="Introdu adresa ta de email" required>
-                <button type="submit">
-                    <i class="fa-solid fa-chevron-right"></i>
-                </button>
-            </div>
-        </form>
-    </section>
+        <div class="btn-group">
+            <a href="includes/logout.php">Logout</a>
+            <a href="reset_password.php">Schimbă parola</a>
+            <a href="change_email.php">Schimbă email</a>
+        </div>
+    </div>
+    </center>
 
     <footer class="footer">
         <div class="footer-container">

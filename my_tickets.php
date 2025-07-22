@@ -1,15 +1,70 @@
-<?php session_start(); 
+<?php 
+session_start(); 
 require_once 'includes/dbh.inc.php';
-?>
-<!DOCTYPE html>
-<html lang="en">
 
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$userId = $_SESSION['user_id'];
+
+// Preluăm toate biletele cumpărate, ordonate după comenzi
+$sql = "
+    SELECT 
+        c.id_cos, cb.cantitate, cb.pret AS pret_bilet,
+        e.name AS event_name, e.date AS event_date, e.location AS event_location,
+        b.denumire AS ticket_name
+    FROM cos_bilet cb
+    JOIN cos c ON cb.id_cos = c.id_cos
+    JOIN bilet b ON cb.id_bilet = b.id_bilet
+    JOIN event e ON b.id_event = e.id_event
+    WHERE c.id_user = ? AND c.isBought = 1
+    ORDER BY c.id_cos DESC, e.date DESC
+";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$userId]);
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Grupăm biletele după id_cos
+$orders = [];
+foreach ($rows as $row) {
+    $orders[$row['id_cos']][] = $row;
+}
+?>
+
+<!DOCTYPE html>
+<html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Eveniment</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Tickets - Ticketa</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        .order-box {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+        }
+        .order-box h2 {
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #eee;
+        }
+    </style>
 </head>
 
 <body>
@@ -30,9 +85,9 @@ require_once 'includes/dbh.inc.php';
                     </div>
                 </li>
                 </li>
-                <li><a class="active" href="index.php">Home</a></li>
+                <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
-                <li><a href="my_tickets.php">My Tickets</a></li>
+                <li><a class="active" href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
                 <li><a href="create_events.php">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
@@ -101,64 +156,61 @@ require_once 'includes/dbh.inc.php';
             </div>
         </div>
     </section>
-    <section id="hero">
-        <section class="main-content">
-            <?php
-            try {
-                $stmt = $pdo->query("SELECT * FROM event ORDER BY date ASC");
-                $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (PDOException $e) {
-                echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
-            }
 
-            echo '
-            <h2 style="text-align: center; position: relative; margin-top: 20px; margin-bottom: 40px;">Evenimente Populare</h2>
-            <section class="event-section">
-            <div class="event-grid">
-            ';
-
-            if ($events) {
-                foreach ($events as $event) {
-                    // pregătește datele
-                    $id = htmlspecialchars($event['id_event']);
-                    $name = htmlspecialchars($event['name']);
-                    $location = htmlspecialchars($event['location']);
-                    $city = htmlspecialchars($event['city']);
-                    $date = date("j F Y", strtotime($event['date']));
-                    $organiser = htmlspecialchars($event['organiser']);
-                    $imgpath = htmlspecialchars($event['imgpath']);
-                    $description = ($event['description']);
-
-                    $isVirtual = ($event['type'] === 'virtual');
-
-                    echo '
-                    <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
-                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                            <h3 class="event-title">' . $name . '</h3>
-                            <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>';
-                            if (!$isVirtual) {
-                                echo '<p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>';
-                            }
-                        echo '
-                            <p class="event-date" style="margin: 4px 0; font-size:18px;"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        </div>
-                    </a>
-                    ';
-                }
-            } else {
-                echo '<p>Nu există evenimente disponibile.</p>';
-            }
-            ?>
-        </section>
+    <section id="main-content" style="padding: 20px; max-width: 100%; margin: auto; margin-top:180px;">
+        <h1 style="text-align: center;">Biletele mele</h1>
+        <?php if (empty($orders)): ?>
+            <p>Nu ai cumpărat încă niciun bilet.</p>
+        <?php else: ?>
+            <?php foreach ($orders as $id_cos => $bilete): ?>
+                <div class="order-box">
+                    <h2>Comandă #<?= $id_cos ?></h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Eveniment</th>
+                                <th>Data</th>
+                                <th>Locație</th>
+                                <th>Tip bilet</th>
+                                <th>Cantitate</th>
+                                <th>Preț / bilet</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                                $total_comanda = 0;
+                                foreach ($bilete as $b): 
+                                    $total = $b['pret_bilet'] * $b['cantitate'];
+                                    $total_comanda += $total;
+                            ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($b['event_name']) ?></td>
+                                    <td><?= htmlspecialchars($b['event_date']) ?></td>
+                                    <td><?= htmlspecialchars($b['event_location']) ?></td>
+                                    <td><?= htmlspecialchars($b['ticket_name']) ?></td>
+                                    <td style="text-align: center;"><?= $b['cantitate'] ?></td>
+                                    <td style="text-align: right;"><?= number_format($b['pret_bilet'], 2) ?> RON</td>
+                                    <td style="text-align: right;"><?= number_format($total, 2) ?> RON</td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <tr>
+                                <td colspan="6" style="text-align: right;"><strong>Total comandă:</strong></td>
+                                <td style="text-align: right;"><strong><?= number_format($total_comanda, 2) ?> RON</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </section>
 
     <section id="rectangle_bar">
         <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
+        <button type="button" class="transparent-button" style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE
+            ACUM!</button>
+    </section>
+    <section class="newsletter">
         <h3>Abonează-te la newsletter!</h3>
         <p>Primește cele mai noi evenimente direct pe email.</p>
         <form class="newsletter-form" action="#" method="POST">
@@ -170,7 +222,6 @@ require_once 'includes/dbh.inc.php';
             </div>
         </form>
     </section>
-
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-column">
@@ -215,6 +266,6 @@ require_once 'includes/dbh.inc.php';
     </footer>
 
     <script src="script.js"></script>
-</body>
+    </body>
 
 </html>

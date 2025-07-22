@@ -10,6 +10,64 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+
+        <style>
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 30px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        .search-bar input[type="text"] {
+            border: none;
+            outline: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #f1f1f1;
+        }
+
+        .search-bar button {
+            background-color: #000000;
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .search-bar button:hover {
+            background-color: #a00a0a;
+        }
+
+        #live-results {
+            position: absolute;
+            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            left: 0;
+            width: 100%;
+            background: white;
+            border: 1px solid #ccc;
+            display: none;
+            z-index: 5;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-results-container {
+            position: relative;
+            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        }
+
+        li::marker {
+        content: none !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -48,11 +106,14 @@ require_once 'includes/dbh.inc.php';
         <div class="header-right">
             <ul id="navbar-right">
                 <li class="desktop-search">
+                <div class="search-results-container">
                     <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
+                    <input type="text" id="search-input" placeholder="Events..." />
+                    <input type="text" id="city-input" placeholder="City..." />
+                    <button type="button"><i class="fas fa-search"></i></button>
                     </div>
+                    <div id="live-results"></div>
+                </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
                     <li class="greeting" style="padding: 10px; color: #1a1a1a;">
@@ -215,6 +276,41 @@ require_once 'includes/dbh.inc.php';
     </footer>
 
     <script src="script.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            const cityInput = document.getElementById('city-input');
+            const liveResults = document.getElementById('live-results');
+
+            function searchLive() {
+                const q = searchInput.value.trim();
+                const city = cityInput.value.trim();
+
+                if (q.length < 1 && city.length < 1) {
+                liveResults.innerHTML = '';
+                liveResults.style.display = 'none';
+                return;
+                }
+
+                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
+                .then(res => res.text())
+                .then(data => {
+                    liveResults.innerHTML = data;
+                    liveResults.style.display = data.trim() ? 'block' : 'none';
+                });
+            }
+
+            searchInput.addEventListener('input', searchLive);
+            cityInput.addEventListener('input', searchLive);
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-results-container')) {
+                liveResults.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 23, 2025 at 10:56 PM
+-- Generation Time: Jul 24, 2025 at 02:14 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -285,7 +285,8 @@ INSERT INTO `cos` (`id_cos`, `isBought`, `cantitate`, `pret`, `id_user`) VALUES
 (116, 1, 1, 15, 27),
 (117, 1, 1, 15, 27),
 (118, 1, 1, 15, 27),
-(119, 1, 1, 15, 27);
+(119, 1, 1, 15, 27),
+(120, 1, 2, 40, 27);
 
 -- --------------------------------------------------------
 
@@ -332,7 +333,8 @@ INSERT INTO `cos_bilet` (`id_cos_bilet`, `id_cos`, `id_bilet`, `cantitate`, `pre
 (35, 116, 26, 1, 15, 15),
 (36, 117, 26, 1, 15, 15),
 (37, 118, 26, 1, 15, 15),
-(38, 119, 26, 1, 15, 15);
+(38, 119, 26, 1, 15, 15),
+(39, 120, 147, 2, 20, 40);
 
 -- --------------------------------------------------------
 
@@ -385,7 +387,8 @@ INSERT INTO `event` (`id_event`, `name`, `location`, `date`, `organiser`, `imgpa
 (26, 'Take Back Your Power', 'Online (Webinar)', '2025-07-22', 'Women Can Inspire Foundation', 'survive_heal.png', 'Survive. Heal. Thrive.\r\n<br /><br />\r\nYou don’t have to stay stuck in survival mode. It’s your time to break free, heal what hurt you, and step boldly into the life you deserve.\r\n<br /><br />\r\nJoin the Women Can Inspire Foundation for a transformative virtual workshop:\r\n<br /><br />\r\n\"Take Back Your Power\" – a safe space for healing, self-discovery, and reclaiming your voice.\r\n<br /><br />\r\nWhat to Expect:<br /><br />\r\n- Real stories from powerful women<br />\r\n- Tools to begin your healing journey<br />\r\n- Permission to grow, glow, and go after more<br />\r\n<br />\r\nWill be available on YouTube after the live webinar, but you must register. We hope to see you there.', '', 'virtual'),
 (27, 'Art Class 101: Drawing from the Masters – Toned Paper with Stephanie Goldman', 'Online via Zoom', '2025-07-23', 'Athenaeum Music & Arts Library | School of the Arts', 'art_class101.png', 'In this class, we will draw from classical and modern art masters who worked on toned paper. You will learn how to use the tone of the paper plus white to create dynamic and expressive drawings.\r\n<br /><br />\r\nThis course will sharpen your skills in rendering form, value, and texture. Basic composition, anatomy, and perspective will also be taught.\r\n<br /><br />\r\nMaterials: Choose only what you prefer working with. Includes pan pastel, charcoal pencils, white charcoal, blending stumps, toned paper, brushes, and more.', '', 'virtual'),
 (28, 'Blood Sugar Hacks: Natural Strategies for Stable Energy & Health', 'Online', '2025-07-24', 'Health Educators Team', 'blood_sugar_hacks.png', 'Feeling the ups and downs of energy throughout your day? Struggling with cravings, fatigue, or brain fog? Your blood sugar might be the culprit.\r\n<br /><br />\r\nIn this empowering class, we’ll dive into practical, evidence-informed herbal and lifestyle “hacks” to help you regulate your blood sugar naturally.\r\n<br /><br />\r\n- Discover blood-sugar-friendly foods<br />\r\n- Learn powerful herbs that support glucose metabolism<br />\r\n- Integrate daily habits for sustained energy and better health<br />\r\n<br />\r\nDate: July 24th, 6:00 – 8:30pm PST\r\nOnline event.', '', 'virtual'),
-(32, 'Test Eveniment 1', 'Teatrul Dramatic', '2025-07-26', 'Ticketa SRL', 'IMG/1753301667_647883785192202b3520939696d8ca34.jpg', 'What is Lorem Ipsum?\r\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\r\n\r\nWhy do we use it?\r\nIt is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using \'Content here, content here\', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for \'lorem ipsum\' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).\r\n\r\n\r\nWhere does it come from?\r\nContrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of \"de Finibus Bonorum et Malorum\" (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, \"Lorem ipsum dolor sit amet..\", comes from a line in section 1.10.32.\r\n\r\nThe standard chunk of Lorem Ipsum used since the 1500s is reproduced below for those interested. Sections 1.10.32 and 1.10.33 from \"de Finibus Bonorum et Malorum\" by Cicero are also reproduced in their exact original form, accompanied by English versions from the 1914 translation by H. Rackham.\r\n\r\nWhere can I get some?\r\nThere are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with a handful of model sentence structures, to generate Lorem Ipsum which looks reasonable. The generated Lorem Ipsum is therefore always free from repetition, injected humour, or non-characteristic words etc.', 'Galati', 'fizic');
+(36, 'Test Eveniment 1', 'Teatrul Dramatic', '2025-07-27', 'Firma SRL', '1753357405_647883785192202b3520939696d8ca34.jpg', '<b>What is Lorem?</b>\r\n<br />\r\nLorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry\'s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\r\n<br /><br />\r\n<b>Why do we use it?</b>\r\nIt is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using \'Content here, content here\', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for \'lorem ipsum\' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).\r\n<br /><br />\r\n<b>Where does it come from?</b>\r\n<br />\r\nContrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of \"de Finibus Bonorum et Malorum\" (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, \"Lorem ipsum dolor sit amet..\", comes from a line in section 1.10.32.\r\n<br /><br />\r\nThe standard chunk of Lorem Ipsum used since the 1500s is reproduced below for those interested. Sections 1.10.32 and 1.10.33 from \"de Finibus Bonorum et Malorum\" by Cicero are also reproduced in their exact original form, accompanied by English versions from the 1914 translation by H. Rackham.\r\n<br /><br />\r\n<b>Where can I get some?</b>\r\n<br />\r\nThere are many variations of passages of Lorem Ipsum available, but the majority have suffered alteration in some form, by injected humour, or randomised words which don\'t look even slightly believable. If you are going to use a passage of Lorem Ipsum, you need to be sure there isn\'t anything embarrassing hidden in the middle of text. All the Lorem Ipsum generators on the Internet tend to repeat predefined chunks as necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with a handful of model sentence structures, to generate Lorem Ipsum which looks reasonable. The generated Lorem Ipsum is therefore always free from repetition, injected humour, or non-characteristic words etc.', 'Galati Test', 'fizic'),
+(37, 'Test Eveniment 2', 'Cinematograf Prof. Ioan Manole', '2025-07-24', 'Firma SRL', '1753359142_stock-photo-147866627.jpg', 'Descriere Test Eveniment 2', 'Galati', 'virtual');
 
 -- --------------------------------------------------------
 
@@ -575,7 +578,7 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `bilet`
 --
 ALTER TABLE `bilet`
-  MODIFY `id_bilet` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=146;
+  MODIFY `id_bilet` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=148;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -587,19 +590,19 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `cos`
 --
 ALTER TABLE `cos`
-  MODIFY `id_cos` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=120;
+  MODIFY `id_cos` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=121;
 
 --
 -- AUTO_INCREMENT for table `cos_bilet`
 --
 ALTER TABLE `cos_bilet`
-  MODIFY `id_cos_bilet` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id_cos_bilet` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- AUTO_INCREMENT for table `event`
 --
 ALTER TABLE `event`
-  MODIFY `id_event` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id_event` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=38;
 
 --
 -- AUTO_INCREMENT for table `event_categories`

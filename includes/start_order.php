@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['tickets'])) {
 
     if (empty($cart)) {
         $_SESSION['order_error'] = "Nu ai selectat bilete.";
-        header('Location: ../event1.php');
+        header('Location: ../index.php');
         exit();
     }
 

@@ -12,12 +12,25 @@ $totalEventsStmt = $pdo->query("SELECT COUNT(*) FROM event WHERE type = 'virtual
 $totalEvents = $totalEventsStmt->fetchColumn();
 $totalPages = ceil($totalEvents / $eventsPerPage);
 
-// Preluare evenimente pentru pagina curentă cu LIMIT
-$stmt = $pdo->prepare("SELECT * FROM event WHERE type = 'virtual' ORDER BY date ASC LIMIT :limit OFFSET :offset");
+$filterDate = isset($_GET['date']) ? $_GET['date'] : null;
+
+if ($filterDate) {
+    $stmt = $pdo->prepare("SELECT * FROM event WHERE type = 'virtual' AND DATE(`date`) = :filterDate ORDER BY date ASC LIMIT :limit OFFSET :offset");
+    $stmt->bindValue(':filterDate', $filterDate, PDO::PARAM_STR);
+} else {
+    $stmt = $pdo->prepare("SELECT * FROM event WHERE type = 'virtual' ORDER BY date ASC LIMIT :limit OFFSET :offset");
+}
+
 $stmt->bindValue(':limit', $eventsPerPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
+}
 ?>
 
 <!DOCTYPE html>
@@ -111,21 +124,37 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
@@ -146,17 +175,26 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 </li>
                 <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a class="active" href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -171,13 +209,13 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <ul id="navbar-right">
                 <li class="desktop-search">
                 <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
                     <li class="greeting" style="padding: 10px; color: #1a1a1a;">
@@ -210,15 +248,15 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
 
                     if ($categories) {
-                        foreach ($categories as $category) {
-                            $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                        foreach ($categories as $categoryItem) {
+                            $denumire = htmlspecialchars($categoryItem['denumire']);
+                            $urlCategory = urlencode($denumire);
+                            echo '<a href="discover_events.php?category=' . $urlCategory . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
-                    ?>
+                ?>
                 </div>
                 <div class="category-calendar">
                         <input type="date" id="event-date-picker">
@@ -257,27 +295,43 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     $categoryTagsHtml .= '<span class="category-tag">' . htmlspecialchars($catName) . '</span> ';
                 }
 
+                $isFilm = in_array('Film', $eventCategories);
+                $isExpired = !$isFilm && (strtotime($event['date']) < time());
+
+                $buttonHtml = $isExpired
+                    ? '<a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                        background-color: #810808; text-decoration: none; text-align: center; color: white;">
+                        Vezi detalii
+                    </a>'
+                    : '<a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                        background-color: #810808; text-decoration: none; text-align: center; color: white;">
+                        Ia bilet
+                    </a>';
+
                 echo '
-                <div class="event-card-horizontal">
-                    <div class="event-image-wrapper" style="width: 400px; height: 300px; overflow: hidden;">
-                        <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                    </div>
-                    <div class="event-details">
-                        <h3 class="event-title">' . $name . '</h3>';
-                        if (!$isVirtual) {
+                    <div class="event-card-horizontal">
+                        <div class="event-image-wrapper" style="width: 400px; height: 300px; overflow: hidden;">
+                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
+                        </div>
+                        <div class="event-details">
+                            <h3 class="event-title">' . $name . '</h3>';
+
+                            if ($isExpired) {
+                                echo '<p class="expired-label" style="color: red; font-weight: bold;">Eveniment expirat</p>';
+                            }
+
+                            if (!$isVirtual) {
                                 echo '<p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>';
                             }
-                        echo '
-                        <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
-                        <p class="event-description">' . $description . '</p>
-                        <div class="event-categories">' . $categoryTagsHtml . '</div>
-                        <a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
-                        text-decoration: none; text-align: center; color: white;">
-                            Ia bilet
-                        </a>
-                    </div>
-                </div>';
+
+                echo '
+                            <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
+                            <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser . '</p>
+                            <p class="event-description">' . $description . '</p>
+                            <div class="event-categories">' . $categoryTagsHtml . '</div>
+                            ' . $buttonHtml . '
+                        </div>
+                    </div>';
                 }
             }
             else {
@@ -297,8 +351,8 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <section id="rectangle_bar">
                 <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-                <button type="button" class="transparent-button"
-                    style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
+                <a href="<?= $redirectLink ?>" class="transparent-button"
+                style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</a>
             </section>
             <section class="newsletter">
                 <h3>Abonează-te la newsletter!</h3>
@@ -359,41 +413,8 @@ $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </footer>
 
     <script src="script.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
+    <script src="search_and_calendar.js"></script>
+    
 </body>
 
 </html>

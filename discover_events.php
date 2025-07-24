@@ -2,44 +2,89 @@
 session_start();
 require_once 'includes/dbh.inc.php';
 
-// Determinăm pagina curentă, default 1
+// Setări paginare
 $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
 $eventsPerPage = 10;
 $offset = ($page - 1) * $eventsPerPage;
 
-// Număr total evenimente (pentru paginare)
-$totalEventsStmt = $pdo->query("SELECT COUNT(*) FROM event");
-$totalEvents = $totalEventsStmt->fetchColumn();
-$totalPages = ceil($totalEvents / $eventsPerPage);
-
-// Preluare evenimente pentru pagina curentă cu LIMIT
-$stmt = $pdo->prepare("SELECT * FROM event ORDER BY date ASC LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $eventsPerPage, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+// Preluare parametri GET
+$category = trim($_GET['category'] ?? '');
 $q = trim($_GET['q'] ?? '');
 $city = trim($_GET['city'] ?? '');
+$date = trim($_GET['date'] ?? '');
 
-$sql = "SELECT * FROM event WHERE 1=1";
+// Construim părțile din query
 $params = [];
+$where = [];
+$join = "";
 
+// Join pentru categorie (dacă există)
+if ($category !== '') {
+    $join .= " 
+        JOIN event_categories ec ON e.id_event = ec.id_event
+        JOIN categories c ON ec.id_cat = c.id_cat
+    ";
+    $where[] = "c.denumire = ?";
+    $params[] = $category;
+}
+
+// Filtru după nume
 if (!empty($q)) {
-    $sql .= " AND name LIKE ?";
+    $where[] = "e.name LIKE ?";
     $params[] = "%$q%";
 }
 
+// Filtru după oraș
 if (!empty($city)) {
-    $sql .= " AND city LIKE ?";
+    $where[] = "e.city LIKE ?";
     $params[] = "%$city%";
 }
 
+// Filtru după dată
+if (!empty($date)) {
+    $where[] = "DATE(e.date) = ?";
+    $params[] = $date;
+}
+
+// Construim SQL-ul principal
+$sql = "SELECT DISTINCT e.* FROM event e $join";
+if (count($where) > 0) {
+    $sql .= " WHERE " . implode(" AND ", $where);
+}
+$sql .= " 
+    ORDER BY 
+        CASE 
+            WHEN e.date < NOW() AND e.id_event NOT IN (
+                SELECT ec.id_event 
+                FROM event_categories ec
+                JOIN categories c ON ec.id_cat = c.id_cat 
+                WHERE c.denumire = 'Film'
+            ) THEN 1 
+            ELSE 0 
+        END,
+        e.date ASC 
+    LIMIT $eventsPerPage OFFSET $offset";
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$events = $stmt->fetchAll();
-?>
+$events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Interogare pentru numărul total de evenimente (pentru paginare)
+$sqlCount = "SELECT COUNT(DISTINCT e.id_event) FROM event e $join";
+if (count($where) > 0) {
+    $sqlCount .= " WHERE " . implode(" AND ", $where);
+}
+$stmtCount = $pdo->prepare($sqlCount);
+$stmtCount->execute($params);
+$totalEvents = $stmtCount->fetchColumn();
+$totalPages = ceil($totalEvents / $eventsPerPage);
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -130,21 +175,37 @@ $events = $stmt->fetchAll();
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
@@ -165,17 +226,26 @@ $events = $stmt->fetchAll();
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 </li>
                 <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a class="active" href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -189,14 +259,14 @@ $events = $stmt->fetchAll();
         <div class="header-right">
             <ul id="navbar-right">
                 <li class="desktop-search">
-                <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
 
                 <?php if (isset($_SESSION["user_fname"])): ?>
@@ -233,7 +303,7 @@ $events = $stmt->fetchAll();
                         foreach ($categories as $category) {
                             $denumire = htmlspecialchars($category['denumire']);
 
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                            echo '<a href="discover_events.php?category=' . urlencode($denumire) . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
@@ -241,7 +311,7 @@ $events = $stmt->fetchAll();
                     ?>
                 </div>
                 <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                    <input type="date" id="event-date-picker" />
                 </div>
             </div>
         </div>
@@ -263,6 +333,8 @@ $events = $stmt->fetchAll();
 
                 $isVirtual = ($event['type'] === 'virtual');
 
+                $isExpired = strtotime($event['date']) < time();
+
                 $stmtCat = $pdo->prepare("
                     SELECT c.denumire 
                     FROM event_categories ec
@@ -277,27 +349,43 @@ $events = $stmt->fetchAll();
                     $categoryTagsHtml .= '<span class="category-tag">' . htmlspecialchars($catName) . '</span> ';
                 }
 
+                $isFilm = in_array('Film', $eventCategories);
+                $isExpired = !$isFilm && (strtotime($event['date']) < time());
+
+                $buttonHtml = $isExpired
+                    ? '<a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                        background-color: #810808; text-decoration: none; text-align: center; color: white;">
+                        Vezi detalii
+                    </a>'
+                    : '<a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
+                        background-color: #810808; text-decoration: none; text-align: center; color: white;">
+                        Ia bilet
+                    </a>';
+
                 echo '
-                <div class="event-card-horizontal">
-                    <div class="event-image-wrapper" style="width: 400px; height: 300px; overflow: hidden;">
-                        <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
-                    </div>
-                    <div class="event-details">
-                        <h3 class="event-title">' . $name . '</h3>';
-                        if (!$isVirtual) {
+                    <div class="event-card-horizontal">
+                        <div class="event-image-wrapper" style="width: 400px; height: 300px; overflow: hidden;">
+                            <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
+                        </div>
+                        <div class="event-details">
+                            <h3 class="event-title">' . $name . '</h3>';
+
+                            if ($isExpired) {
+                                echo '<p class="expired-label" style="color: red; font-weight: bold;">Eveniment expirat</p>';
+                            }
+
+                            if (!$isVirtual) {
                                 echo '<p class="event-location" style="margin: 4px 0; font-size:18px;"><i class="fas fa-map-marker-alt"></i> ' . $city . '</p>';
                             }
-                        echo '
-                        <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
-                        <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>
-                        <p class="event-description">' . $description . '</p>
-                        <div class="event-categories">' . $categoryTagsHtml . '</div>
-                        <a href="event.php?id_event=' . $id . '" class="buy-ticket-btn" style="width: 30%; float: right; display: inline-block; 
-                        text-decoration: none; text-align: center; color: white;">
-                            Ia bilet
-                        </a>
-                    </div>
-                </div>';
+
+                echo '
+                            <p class="event-date"><i class="fas fa-calendar-alt"></i> ' . $date . '</p>
+                            <p class="event-organiser"><i class="fas fa-clipboard-list"></i> ' . $organiser . '</p>
+                            <p class="event-description">' . $description . '</p>
+                            <div class="event-categories">' . $categoryTagsHtml . '</div>
+                            ' . $buttonHtml . '
+                        </div>
+                    </div>';
                 }
             }
             else {
@@ -323,8 +411,8 @@ $events = $stmt->fetchAll();
             </div>
             <section id="rectangle_bar">
                 <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-                <button type="button" class="transparent-button"
-                    style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
+                <a href="<?= $redirectLink ?>" class="transparent-button"
+                style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</a>
             </section>
             <section class="newsletter">
                 <h3>Abonează-te la newsletter!</h3>
@@ -385,41 +473,8 @@ $events = $stmt->fetchAll();
     </footer>
 
     <script src="script.js"></script>
+    <script src="search_and_calendar.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
 </body>
 
 </html>

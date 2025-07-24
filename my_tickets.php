@@ -9,7 +9,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-// Preluăm toate biletele cumpărate, ordonate după comenzi
 $sql = "
     SELECT 
         c.id_cos, cb.cantitate, cb.pret AS pret_bilet,
@@ -19,18 +18,43 @@ $sql = "
     JOIN cos c ON cb.id_cos = c.id_cos
     JOIN bilet b ON cb.id_bilet = b.id_bilet
     JOIN event e ON b.id_event = e.id_event
-    WHERE c.id_user = ? AND c.isBought = 1
-    ORDER BY c.id_cos DESC, e.date DESC
 ";
 
+$params = [$userId];
+$category = trim($_GET['category'] ?? '');
+
+if ($category !== '') {
+    // Adăugăm join-urile necesare pentru categorie
+    $sql .= "
+        JOIN event_categories ec ON e.id_event = ec.id_event
+        JOIN categories cat ON ec.id_cat = cat.id_cat
+    ";
+}
+
+// Clauza WHERE de bază (filtrare după user și comenzi cumpărate)
+$sql .= " WHERE c.id_user = ? AND c.isBought = 1 ";
+
+if ($category !== '') {
+    // Filtrare după denumirea categoriei
+    $sql .= " AND cat.denumire = ? ";
+    $params[] = $category;
+}
+
+$sql .= " ORDER BY c.id_cos DESC, e.date DESC ";
+
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$userId]);
+$stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Grupăm biletele după id_cos
 $orders = [];
 foreach ($rows as $row) {
     $orders[$row['id_cos']][] = $row;
+}
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
 }
 ?>
 
@@ -100,25 +124,61 @@ foreach ($rows as $row) {
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
         content: none !important;
+        }
+
+        .btn-group {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .btn-group a {
+            display: inline-block;
+            margin: 8px;
+            padding: 10px 20px;
+            background-color: #810808;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+
+        .btn-group a:hover {
+            background-color: #5a0606;
         }
     </style>
 </head>
@@ -133,19 +193,28 @@ foreach ($rows as $row) {
             <ul id="navbar-left">
                 <li class="burger-logo">
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
-                <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
                 </li>
+                <li class="mobile-search">
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a class="active" href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -160,13 +229,13 @@ foreach ($rows as $row) {
             <ul id="navbar-right">
                 <li class="desktop-search">
                 <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
                     <li class="greeting" style="padding: 10px; color: #1a1a1a;">
@@ -199,10 +268,10 @@ foreach ($rows as $row) {
                     }
 
                     if ($categories) {
-                        foreach ($categories as $category) {
-                            $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                        foreach ($categories as $categoryItem) {
+                            $denumire = htmlspecialchars($categoryItem['denumire']);
+                            $urlCategory = urlencode($denumire);
+                            echo '<a href="discover_events.php?category=' . $urlCategory . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
@@ -259,6 +328,20 @@ foreach ($rows as $row) {
                             </tr>
                         </tbody>
                     </table>
+                    <form method="post" action="includes/generate_ticket_pdf.php" target="_blank">
+                        <?php foreach ($bilete as $b): ?>
+                            <input type="hidden" name="event_name[]" value="<?= htmlspecialchars($b['event_name']) ?>">
+                            <input type="hidden" name="event_date[]" value="<?= htmlspecialchars($b['event_date']) ?>">
+                            <input type="hidden" name="event_location[]" value="<?= htmlspecialchars($b['event_location']) ?>">
+                            <input type="hidden" name="ticket_name[]" value="<?= htmlspecialchars($b['ticket_name']) ?>">
+                            <input type="hidden" name="cantitate[]" value="<?= $b['cantitate'] ?>">
+                            <input type="hidden" name="pret_bilet[]" value="<?= $b['pret_bilet'] ?>">
+                        <?php endforeach; ?>
+                        <button class="btn-group" style="width: 20%; display: block; margin: 0 auto; margin-top: 20px; background-color: #810808; color: white;
+                        border: none; padding: 10px 18px; font-size: 15px; border-radius: 25px; cursor: pointer; transition: background-color 0.3s; white-space: nowrap; 
+                        height: fit-content; align-self: start;" 
+                        type="submit">Descarcă PDF</button>
+                    </form>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -266,8 +349,8 @@ foreach ($rows as $row) {
 
     <section id="rectangle_bar">
         <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button" style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE
-            ACUM!</button>
+        <a href="<?= $redirectLink ?>" class="transparent-button"
+        style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</a>
     </section>
     <section class="newsletter">
         <h3>Abonează-te la newsletter!</h3>
@@ -325,41 +408,7 @@ foreach ($rows as $row) {
     </footer>
 
     <script src="script.js"></script>
+    <script src="search_and_calendar.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
     </body>
-
 </html>

@@ -27,12 +27,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'], $_SESSI
         $totalPrice += $qty * $price;
     }
 
+    $bilete = [];
+    foreach ($cart as $item) {
+        $bilete[] = [
+            'event_name' => $item['event_name'] ?? '',
+            'event_date' => $item['event_date'] ?? '',
+            'event_location' => $item['event_location'] ?? '',
+            'ticket_name' => $item['type'] ?? '',
+            'cantitate' => (int)$item['quantity'],
+            'pret_bilet' => (float)$item['price'],
+        ];
+    }
+
     try {
-        // Inserez fiecare bilet din cart în cos_bilet
         foreach ($cart as $item) {
             $id_bilet = isset($item['id_bilet']) ? $item['id_bilet'] : null;
             $cantitate = (int)$item['quantity'];
             $pret = (float)$item['price'];
+            $pret_total = $price * $cantitate;
 
             // Dacă nu ai id_bilet în date, trebuie să-l adaugi în cart când îl construiești în JS!
             if ($id_bilet === null) {
@@ -40,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'], $_SESSI
                 continue;
             }
 
-            $stmt = $pdo->prepare("INSERT INTO cos_bilet (id_cos, id_bilet, cantitate, pret) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$id_cos, $id_bilet, $cantitate, $pret]);
+            $stmt = $pdo->prepare("INSERT INTO cos_bilet (id_cos, id_bilet, cantitate, pret, pret_total) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$id_cos, $id_bilet, $cantitate, $pret, $pret_total]);
         }
 
         // Actualizez cos-ul
@@ -57,6 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user_id'], $_SESSI
 
         // Șterg sesiunea comenzii curente
         unset($_SESSION['current_order_id']);
+
+        $_SESSION['tickets_to_download'] = $bilete;
 
         $_SESSION['order_success'] = "Mulțumim pentru comandă! Comanda ta a fost procesată cu succes.";
         header("Location: ../cart.php");

@@ -1,5 +1,11 @@
 <?php session_start(); 
 require_once 'includes/dbh.inc.php';
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -7,11 +13,13 @@ require_once 'includes/dbh.inc.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Site Eveniment</title>
+    <title>Ticketa</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-        <style>
+    <style>
         .search-bar {
             display: flex;
             align-items: center;
@@ -47,25 +55,57 @@ require_once 'includes/dbh.inc.php';
             background-color: #a00a0a;
         }
 
-        #live-results {
+       .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
         content: none !important;
+        }
+
+        .buy-ticket-btn {
+            padding: 12px 24px;
+            background-color: #810808;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .buy-ticket-btn:hover {
+            background-color: #a01010;  /* o nuanță mai deschisă */
+            transform: scale(1.05);     /* ușoară mărire */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* adaugă puțin efect de profunzime */
         }
     </style>
 </head>
@@ -92,7 +132,14 @@ require_once 'includes/dbh.inc.php';
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -108,11 +155,11 @@ require_once 'includes/dbh.inc.php';
                 <li class="desktop-search">
                 <div class="search-results-container">
                     <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <input type="text" class="search-input" placeholder="Events..." />
+                        <input type="text" class="city-input" placeholder="City..." />
+                        <button class="search-button" type="button"><i class="fas fa-search"></i></button>
                     </div>
-                    <div id="live-results"></div>
+                    <div class="live-results" id="live-results-desktop"></div>
                 </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
@@ -148,25 +195,30 @@ require_once 'includes/dbh.inc.php';
                     if ($categories) {
                         foreach ($categories as $category) {
                             $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                            $id_cat = $category['id_cat'];
+                            
+                            echo '<a href="discover_events.php?category=' . $id_cat . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
                     ?>
                 </div>
-                <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                <div id="calendar-container" style="position: relative; display: inline-block;">
+                    <input type="text" id="event-date-picker" style="width: 250px; padding: 8px; border-radius: 4px; display: none;">
+                    <i id="calendar-icon" class="fa fa-calendar" style="cursor: pointer; font-size: 20px; margin-left: 8px;"></i>
                 </div>
             </div>
         </div>
     </section>
+
     <section id="hero">
         <section class="main-content">
             <?php
             try {
-                $stmt = $pdo->query("SELECT * FROM event ORDER BY date ASC");
+                $today = date('Y-m-d');
+                $stmt = $pdo->prepare("SELECT * FROM event WHERE date >= ? ORDER BY date ASC LIMIT 20");
+                $stmt->execute([$today]);
                 $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (PDOException $e) {
                 echo "Eroare la preluarea evenimentelor: " . $e->getMessage();
@@ -180,7 +232,6 @@ require_once 'includes/dbh.inc.php';
 
             if ($events) {
                 foreach ($events as $event) {
-                    // pregătește datele
                     $id = htmlspecialchars($event['id_event']);
                     $name = htmlspecialchars($event['name']);
                     $location = htmlspecialchars($event['location']);
@@ -189,12 +240,11 @@ require_once 'includes/dbh.inc.php';
                     $organiser = htmlspecialchars($event['organiser']);
                     $imgpath = htmlspecialchars($event['imgpath']);
                     $description = ($event['description']);
-
                     $isVirtual = ($event['type'] === 'virtual');
 
                     echo '
                     <a href="event.php?id_event=' . $id . '" class="event-card-link">
-                        <div class="event-card">
+                        <div class="event-card" style="height: 550px;">
                             <img src="IMG/' . $imgpath . '" alt="Eveniment" class="event-image">
                             <h3 class="event-title">' . $name . '</h3>
                             <p class="event-organiser" style="margin: 4px 0; font-size:18px;"><i class="fas fa-clipboard-list"></i> ' . $organiser .'</p>';
@@ -210,16 +260,26 @@ require_once 'includes/dbh.inc.php';
             } else {
                 echo '<p>Nu există evenimente disponibile.</p>';
             }
+            echo '
+            </div> <!-- închide .event-grid -->
+            <div style="text-align: center; margin-top: 30px;">
+                <a href="discover_events.php" class="buy-ticket-btn" style="padding: 12px 24px; background-color: #810808; color: white; border-radius: 5px; text-decoration: none;">
+                    Show more
+                </a>
+            </div>
+            </section>
+            ';
             ?>
         </section>
     </section>
 
     <section id="rectangle_bar">
         <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button"
-            style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</button>
-        </section>
-        <section class="newsletter">
+        <a href="<?= $redirectLink ?>" class="transparent-button"
+        style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</a>
+    </section>
+
+    <section class="newsletter">
         <h3>Abonează-te la newsletter!</h3>
         <p>Primește cele mai noi evenimente direct pe email.</p>
         <form class="newsletter-form" action="#" method="POST">
@@ -276,41 +336,7 @@ require_once 'includes/dbh.inc.php';
     </footer>
 
     <script src="script.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
+    <script src="search_and_calendar.js"></script>
 </body>
 
 </html>

@@ -1,6 +1,12 @@
 <?php
 session_start();
 require_once 'includes/dbh.inc.php';
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -10,6 +16,9 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         body { 
             font-family: Arial, sans-serif; 
@@ -138,21 +147,37 @@ require_once 'includes/dbh.inc.php';
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
@@ -171,18 +196,27 @@ require_once 'includes/dbh.inc.php';
             <li class="burger-logo">
                 <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
             </li>
             <li><a href="index.php">Home</a></li>
             <li><a href="discover_events.php">Discover Events</a></li>
             <li><a href="my_tickets.php">My Tickets</a></li>
             <li><a href="virtual_events.php">Virtual Events</a></li>
-            <li><a href="create_events.php">Create Events</a></li>
+            <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
             <li><a href="about_us.php">About Us</a></li>
         </ul>
     </div>
@@ -197,13 +231,13 @@ require_once 'includes/dbh.inc.php';
         <ul id="navbar-right">
             <li class="desktop-search">
                 <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
             <?php if (isset($_SESSION["user_fname"])): ?>
                 <li class="greeting" style="padding: 10px; color: #1a1a1a;">
@@ -220,7 +254,7 @@ require_once 'includes/dbh.inc.php';
                 <li><a href="cart.php"><i class="fas fa-shopping-bag"></i></a></li>
             </ul>
         </div>
-    </section>
+</section>
 
     <section id="subheader">
         <div class="category-wrapper">
@@ -235,79 +269,105 @@ require_once 'includes/dbh.inc.php';
                     }
 
                     if ($categories) {
-                        foreach ($categories as $category) {
-                            $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                        foreach ($categories as $categoryItem) {
+                            $denumire = htmlspecialchars($categoryItem['denumire']);
+                            $urlCategory = urlencode($denumire);
+                            echo '<a href="discover_events.php?category=' . $urlCategory . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
-                    ?>
+                ?>
                 </div>
-                <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                <div id="calendar-container" style="position: relative; display: inline-block;">
+                    <input type="text" id="event-date-picker" style="width: 250px; padding: 8px; border-radius: 4px; display: none;">
+                    <i id="calendar-icon" class="fa fa-calendar" style="cursor: pointer; font-size: 20px; margin-left: 8px;"></i>
                 </div>
             </div>
         </div>
     </section>
 
     <div id="main-wrapper">
-    <section id="main-content" style="margin-top: 180px;">
-    <h1>Coșul tău de bilete</h1>
+        <section id="main-content" style="margin-top: 180px;">
+        <h1>Coșul tău de bilete</h1>
 
-    <?php if (isset($_SESSION['order_success'])): ?>
-        <div style="margin-top:20px; background-color:#d4edda; color:#155724; padding:15px; border-radius:6px; border:1px solid #c3e6cb;">
-            <?= htmlspecialchars($_SESSION['order_success']); ?>
+        <?php if (isset($_SESSION['order_success'])): ?>
+            <div style="margin-top:20px; background-color:#d4edda; color:#155724; padding:15px; border-radius:6px; border:1px solid #c3e6cb;">
+                <?= htmlspecialchars($_SESSION['order_success']); ?>
+            </div>
+
+            <?php if (isset($_SESSION['tickets_to_download']) && is_array($_SESSION['tickets_to_download'])): ?>
+                <form method="POST" action="includes/generate_ticket_pdf.php" style="margin-top: 15px;">
+                    <?php foreach ($_SESSION['tickets_to_download'] as $ticket): ?>
+                        <input type="hidden" name="event_name[]" value="<?= htmlspecialchars($ticket['event_name']) ?>">
+                        <input type="hidden" name="event_date[]" value="<?= htmlspecialchars($ticket['event_date']) ?>">
+                        <input type="hidden" name="event_location[]" value="<?= htmlspecialchars($ticket['event_location']) ?>">
+                        <input type="hidden" name="ticket_name[]" value="<?= htmlspecialchars($ticket['ticket_name']) ?>">
+                        <input type="hidden" name="cantitate[]" value="<?= htmlspecialchars($ticket['cantitate']) ?>">
+                        <input type="hidden" name="pret_bilet[]" value="<?= htmlspecialchars($ticket['pret_bilet']) ?>">
+                        <input type="hidden" name="cod_bilet[]" value='<?= htmlspecialchars($ticket['cod_bilete']) ?>'>
+                    <?php endforeach; ?>
+
+                    <!-- Trimite un singur order_id scalar -->
+                    <input type="hidden" name="order_id" value="<?= htmlspecialchars($_SESSION['tickets_to_download'][0]['order_id']) ?>">
+
+                    <button class="btn-group" style="width: 20%; display: block; margin: 0 auto; margin-top: 20px; background-color: #810808; color: white;
+                        border: none; padding: 10px 18px; font-size: 15px; border-radius: 25px; cursor: pointer; transition: background-color 0.3s; white-space: nowrap; 
+                        height: fit-content; align-self: start;" 
+                        type="submit">Descarcă Biletele PDF</button>
+                </form>
+            <?php endif; ?>
+
+            <script>
+                localStorage.removeItem('cart');
+                localStorage.removeItem('eventDetails');
+            </script>
+            <?php unset($_SESSION['order_success']); ?>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['order_error'])): ?>
+            <div style="margin-top:20px; background-color:#f8d7da; color:#721c24; padding:15px; border-radius:6px; border:1px solid #f5c6cb;">
+                <?= htmlspecialchars($_SESSION['order_error']); ?>
+            </div>
+            <?php unset($_SESSION['order_error']); ?>
+        <?php endif; ?>
+
+        <table id="cart-table">
+            <thead>
+                <tr>
+                    <th>Denumire</th>
+                    <th>Preț unitar</th>
+                    <th>Cantitate</th>
+                    <th>Data</th>
+                    <th>Locație</th>
+                    <th>Preț total</th>
+                    <th>Acțiuni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rândurile se vor adăuga din JS -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="5">Total de plată</td>
+                    <td id="total-price">0 RON</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div id="empty-cart-message" style="display: none; color: red; font-weight: bold;">
+            Nu ai niciun coș activ.
         </div>
-        <script>
-            localStorage.removeItem('cart');
-            localStorage.removeItem('eventDetails');
-        </script>
-    <?php unset($_SESSION['order_success']); endif; ?>
 
-    <?php if (isset($_SESSION['order_error'])): ?>
-        <div style="margin-top:20px; background-color:#f8d7da; color:#721c24; padding:15px; border-radius:6px; border:1px solid #f5c6cb;">
-            <?= htmlspecialchars($_SESSION['order_error']); ?>
-        </div>
-    <?php unset($_SESSION['order_error']); endif; ?>
-
-    <table id="cart-table">
-        <thead>
-            <tr>
-                <th>Denumire</th>
-                <th>Preț unitar</th>
-                <th>Cantitate</th>
-                <th>Data</th>
-                <th>Locație</th>
-                <th>Preț total</th>
-                <th>Acțiuni</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rândurile se vor adăuga din JS -->
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="5">Total de plată</td>
-                <td id="total-price">0 RON</td>
-            </tr>
-        </tfoot>
-    </table>
-
-    <?php if (isset($_SESSION['user_id'])): ?>
-        <?php if (isset($_SESSION['current_order_id'])): ?>
+        <?php if (isset($_SESSION['user_id'])): ?>
             <form id="buy-form" action="includes/buy_cart.php" method="POST" onsubmit="return prepareCartData();">
                 <input type="hidden" name="cartData" id="cartData" />
                 <button id="buy-button" type="submit">Cumpără bilete</button>
             </form>
-        <?php else: ?>
-            <p style="color: orange;">Nu ai un coș activ pentru cumpărare.</p>
-        <?php endif; ?>
-    <?php else: ?>
-        <p>Trebuie să fii logat pentru a cumpăra bilete. <a href="login.php">Loghează-te aici</a>.</p>
-    <?php endif; ?>
-</section>
+            <?php else: ?>
+                <p>Trebuie să fii logat pentru a cumpăra bilete. <a href="login.php">Loghează-te aici</a>.</p>
+            <?php endif; ?>
+        </section>
     </div>
 
 <footer class="footer" style="bottom: 0; width: 100%;">
@@ -367,7 +427,7 @@ require_once 'includes/dbh.inc.php';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${item.type}</td>
-            <td>${price} RON</td>
+            <td>${price.toFixed(2).replace(/\.00$/, '')} RON</td>
             <td>
                 <button class="decrease">-</button>
                 <span class="quantity">${quantity}</span>
@@ -375,7 +435,7 @@ require_once 'includes/dbh.inc.php';
             </td>
             <td>${event.date || '-'}</td>
             <td>${event.location || '-'}</td>
-            <td class="item-total">${total} RON</td>
+            <td class="item-total">${total.toFixed(2)} RON</td>
             <td><button class="remove">Șterge</button></td>
         `;
         tbody.appendChild(tr);
@@ -383,7 +443,21 @@ require_once 'includes/dbh.inc.php';
 
     // Calculează total general
     const totalCartPrice = cart.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
-    document.getElementById('total-price').textContent = `${totalCartPrice} RON`;
+    document.getElementById('total-price').textContent = `${totalCartPrice.toFixed(2)} RON`;
+
+    if (cart.length === 0) {
+        // Ascund formularul de cumpărare
+        const buyForm = document.getElementById('buy-form');
+        if (buyForm) {
+            buyForm.style.display = 'none';
+        }
+
+        // Arăt mesajul "Nu ai niciun coș activ"
+        const emptyMessage = document.getElementById('empty-cart-message');
+        if (emptyMessage) {
+            emptyMessage.style.display = 'block';
+        }
+    }
 
     // Evenimente butoane
     tbody.querySelectorAll('.increase').forEach((btn, i) => {
@@ -416,41 +490,10 @@ require_once 'includes/dbh.inc.php';
         document.getElementById('cartData').value = cartData ? cartData : '[]';
         return true;
     }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
 </script>
 
 <script src="script.js"></script>
+<script src="search_and_calendar.js"></script>
+
 </body>
 </html>

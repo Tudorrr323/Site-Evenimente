@@ -8,29 +8,70 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = $_SESSION['user_id'];
+$category = trim($_GET['category'] ?? '');
 
-// Preluăm toate biletele cumpărate, ordonate după comenzi
 $sql = "
     SELECT 
-        c.id_cos, cb.cantitate, cb.pret AS pret_bilet,
+        cb.order_id,
+        cb.id_cos_bilet, cb.cantitate, cb.pret AS pret_bilet, cb.cod_bilet,
         e.name AS event_name, e.date AS event_date, e.location AS event_location,
         b.denumire AS ticket_name
     FROM cos_bilet cb
-    JOIN cos c ON cb.id_cos = c.id_cos
     JOIN bilet b ON cb.id_bilet = b.id_bilet
     JOIN event e ON b.id_event = e.id_event
-    WHERE c.id_user = ? AND c.isBought = 1
-    ORDER BY c.id_cos DESC, e.date DESC
 ";
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$userId]);
-$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if ($category !== '') {
+    $sql .= "
+        JOIN event_categories ec ON e.id_event = ec.id_event
+        JOIN categories cat ON ec.id_cat = cat.id_cat
+    ";
+}
 
-// Grupăm biletele după id_cos
-$orders = [];
-foreach ($rows as $row) {
-    $orders[$row['id_cos']][] = $row;
+$sql .= " WHERE cb.id_user = ? AND cb.isBought = 1";
+
+if ($category !== '') {
+    $sql .= " AND cat.denumire = ?";
+    $params = [$userId, $category];
+} else {
+    $params = [$userId];
+}
+
+$sql .= " ORDER BY cb.order_id DESC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$bilete = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$redirectLink = "signup_manager.php";
+
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+    $redirectLink = "create_events.php";
+}
+
+$groupedTickets = [];
+
+foreach ($bilete as $bilet) {
+    // Cheia de grupare - poți ajusta după ce vrei să compari exact
+    $key = $bilet['order_id'] . '|' . $bilet['event_name'] . '|' . $bilet['event_date'] . '|' . $bilet['event_location'] . '|' . $bilet['ticket_name'] . '|' . $bilet['pret_bilet'];
+
+    if (!isset($groupedTickets[$key])) {
+        $groupedTickets[$key] = [
+            'order_id' => $bilet['order_id'],
+            'event_name' => $bilet['event_name'],
+            'event_date' => $bilet['event_date'],
+            'event_location' => $bilet['event_location'],
+            'ticket_name' => $bilet['ticket_name'],
+            'pret_bilet' => $bilet['pret_bilet'],
+            'cantitate' => 0,
+            'coduri_bilete' => [], // aici adunăm codurile
+        ];
+    }
+
+    $groupedTickets[$key]['cantitate'] += (int)$bilet['cantitate'];
+
+    // cod_bilet poate fi un string sau cod unic, depinde ce ai în baza de date
+    $groupedTickets[$key]['coduri_bilete'][] = $bilet['cod_bilet'];
 }
 ?>
 
@@ -42,6 +83,9 @@ foreach ($rows as $row) {
     <title>My Tickets - Ticketa</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         .order-box {
             margin-bottom: 40px;
@@ -100,31 +144,115 @@ foreach ($rows as $row) {
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
         content: none !important;
         }
+
+        .pdf-button {
+            display: inline-block;
+            background-color: #810808;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+            border: none;
+            padding: 6px 14px;
+            font-size: 0.9rem;
+            margin: 10px auto;
+            width: 200px;
+        }
+
+        .pdf-button:hover {
+            background-color: #a00a0a;
+        }
+
+        .pdf-button-container {
+            text-align: center;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 40px;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+
+        .pagination a,
+        .pagination strong {
+            display: inline-block;
+            margin: 0 6px;
+            padding: 8px 14px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .pagination a {
+            background-color: #810808;
+            color: white;
+            box-shadow: 0 3px 8px rgba(168, 9, 9, 0.6);
+            cursor: pointer;
+        }
+
+        .pagination a:hover {
+            background-color: #a00a0a;
+            box-shadow: 0 4px 12px rgba(195, 12, 12, 0.8);
+        }
+
+        .pagination strong {
+            background-color: #c30c0c;
+            color: white;
+            box-shadow: 0 4px 12px rgba(195, 12, 12, 0.9);
+            cursor: default;
+        }
+
+        .pagination a:active {
+            background-color: #6c0606;
+            box-shadow: none;
+            transform: translateY(2px);
+        }
     </style>
 </head>
 
 <body>
-
     <section id="header">
         <button id="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="navbar-left">
             <i class="fa-solid fa-bars"></i>
@@ -133,19 +261,28 @@ foreach ($rows as $row) {
             <ul id="navbar-left">
                 <li class="burger-logo">
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
-                <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
                 </li>
+                <li class="mobile-search">
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a class="active" href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -160,13 +297,13 @@ foreach ($rows as $row) {
             <ul id="navbar-right">
                 <li class="desktop-search">
                 <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
                     <li class="greeting" style="padding: 10px; color: #1a1a1a;">
@@ -199,75 +336,151 @@ foreach ($rows as $row) {
                     }
 
                     if ($categories) {
-                        foreach ($categories as $category) {
-                            $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                        foreach ($categories as $categoryItem) {
+                            $denumire = htmlspecialchars($categoryItem['denumire']);
+                            $urlCategory = urlencode($denumire);
+                            echo '<a href="discover_events.php?category=' . $urlCategory . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
                     ?>
                 </div>
-                <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                <div id="calendar-container" style="position: relative; display: inline-block;">
+                    <input type="text" id="event-date-picker" style="width: 250px; padding: 8px; border-radius: 4px; display: none;">
+                    <i id="calendar-icon" class="fa fa-calendar" style="cursor: pointer; font-size: 20px; margin-left: 8px;"></i>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="main-content" style="padding: 20px; max-width: 100%; margin: auto; margin-top:180px;">
-        <h1 style="text-align: center;">Biletele mele</h1>
-        <?php if (empty($orders)): ?>
-            <p>Nu ai cumpărat încă niciun bilet.</p>
+        <h1 style="text-align: center; margin-bottom: 20px;">Biletele mele</h1>
+        <?php if (empty($bilete)): ?>
+            <p style="text-align:center; font-size:1.2rem; margin-top: 40px;">Nu ai cumpărat încă niciun bilet.</p>
         <?php else: ?>
-            <?php foreach ($orders as $id_cos => $bilete): ?>
-                <div class="order-box">
-                    <h2>Comandă #<?= $id_cos ?></h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Eveniment</th>
-                                <th>Data</th>
-                                <th>Locație</th>
-                                <th>Tip bilet</th>
-                                <th>Cantitate</th>
-                                <th>Preț / bilet</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                                $total_comanda = 0;
-                                foreach ($bilete as $b): 
-                                    $total = $b['pret_bilet'] * $b['cantitate'];
-                                    $total_comanda += $total;
-                            ?>
+            <?php
+                $currentOrder = null;
+                $orderTickets = [];
+                foreach ($groupedTickets as $ticket) {
+                    $orderTickets[$ticket['order_id']][] = $ticket;
+                }
+
+                krsort($orderTickets); // ordonăm comenzile descrescător
+
+                $lineCount = 0; // număr linii afișate (nu bilete)
+                
+                // PAGINARE
+                $linesPerPage = 15;
+                $totalLines = count($groupedTickets); // fiecare grup = 1 linie
+                $totalPages = ceil($totalLines / $linesPerPage);
+
+                // Pagina curentă
+                $currentPage = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+                $currentPage = max(1, min($currentPage, $totalPages)); // între 1 și $totalPages
+
+                // Offset și selecție
+                $start = ($currentPage - 1) * $linesPerPage;
+                $pagedGroupedTickets = array_slice($groupedTickets, $start, $linesPerPage, true);
+
+                // Regenerăm orderTickets doar cu liniile afișate în această pagină
+                $orderTickets = [];
+                foreach ($pagedGroupedTickets as $ticket) {
+                    $orderTickets[$ticket['order_id']][] = $ticket;
+                }
+
+                krsort($orderTickets); // ordonăm comenzile descrescător
+
+                foreach ($orderTickets as $orderId => $tickets):
+                    $ticketsToShow = [];
+
+                    foreach ($tickets as $ticket) {
+                        if ($lineCount >= 15) break 2; // oprim complet dacă s-au afișat 30 de linii
+                        $ticketsToShow[] = $ticket;
+                        $lineCount++;
+                    }
+
+                    if (empty($ticketsToShow)) continue;
+                    ?>
+
+                    <div class="order-box">
+                        <h2>Comanda #<?= htmlspecialchars($orderId) ?></h2>
+                        <table>
+                            <thead>
                                 <tr>
-                                    <td><?= htmlspecialchars($b['event_name']) ?></td>
-                                    <td><?= htmlspecialchars($b['event_date']) ?></td>
-                                    <td><?= htmlspecialchars($b['event_location']) ?></td>
-                                    <td><?= htmlspecialchars($b['ticket_name']) ?></td>
-                                    <td style="text-align: center;"><?= $b['cantitate'] ?></td>
-                                    <td style="text-align: right;"><?= number_format($b['pret_bilet'], 2) ?> RON</td>
-                                    <td style="text-align: right;"><?= number_format($total, 2) ?> RON</td>
+                                    <th>Eveniment</th>
+                                    <th>Data</th>
+                                    <th>Locație</th>
+                                    <th>Tip bilet</th>
+                                    <th>Cantitate</th>
+                                    <th>Preț / bilet</th>
+                                    <th>Total</th>
                                 </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($ticketsToShow as $ticket): 
+                                    $total = $ticket['pret_bilet'] * $ticket['cantitate'];
+                                    ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($ticket['event_name']) ?></td>
+                                        <td><?= htmlspecialchars($ticket['event_date']) ?></td>
+                                        <td><?= htmlspecialchars($ticket['event_location']) ?></td>
+                                        <td><?= htmlspecialchars($ticket['ticket_name']) ?></td>
+                                        <td style="text-align: center;"><?= $ticket['cantitate'] ?></td>
+                                        <td style="text-align: right;"><?= number_format((float)$ticket['pret_bilet'], 2) ?> RON</td>
+                                        <td style="text-align: right;"><?= number_format($total, 2) ?> RON</td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+
+                        <!-- PDF form -->
+                        <form action="includes/generate_ticket_pdf.php" method="post" style="margin-top: 15px;">
+                            <?php foreach ($ticketsToShow as $ticket): ?>
+                                <input type="hidden" name="event_name[]" value="<?= htmlspecialchars($ticket['event_name']) ?>">
+                                <input type="hidden" name="event_date[]" value="<?= htmlspecialchars($ticket['event_date']) ?>">
+                                <input type="hidden" name="event_location[]" value="<?= htmlspecialchars($ticket['event_location']) ?>">
+                                <input type="hidden" name="ticket_name[]" value="<?= htmlspecialchars($ticket['ticket_name']) ?>">
+                                <input type="hidden" name="cantitate[]" value="<?= (int)$ticket['cantitate'] ?>">
+                                <input type="hidden" name="pret_bilet[]" value="<?= (float)$ticket['pret_bilet'] ?>">
+                                <input type="hidden" name="cod_bilet[]" value="<?= htmlspecialchars(json_encode($ticket['coduri_bilete'])) ?>">
                             <?php endforeach; ?>
-                            <tr>
-                                <td colspan="6" style="text-align: right;"><strong>Total comandă:</strong></td>
-                                <td style="text-align: right;"><strong><?= number_format($total_comanda, 2) ?> RON</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                            <input type="hidden" name="order_id" value="<?= htmlspecialchars($orderId) ?>">
+                            <div class="pdf-button-container">
+                                <button type="submit" class="pdf-button">Descarcă PDF</button>
+                            </div>
+                        </form>
+                    </div>
+                <?php endforeach; ?>
+
+                <div class="pagination">
+                    <?php if ($totalPages > 1): ?>
+                        <div style="text-align: center; margin-top: 40px;">
+                            <?php if ($currentPage > 1): ?>
+                                <a href="?page=<?= $currentPage - 1 ?>" style="margin: 0 10px;">&laquo; Prev</a>
+                            <?php endif; ?>
+
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <?php if ($i == $currentPage): ?>
+                                    <strong style="margin: 0 5px;"><?= $i ?></strong>
+                                <?php else: ?>
+                                    <a href="?page=<?= $i ?>" style="margin: 0 5px;"><?= $i ?></a>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+
+                            <?php if ($currentPage < $totalPages): ?>
+                                <a href="?page=<?= $currentPage + 1 ?>" style="margin: 0 10px;">Next &raquo;</a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+            <?php endif; ?>
     </section>
 
     <section id="rectangle_bar">
         <h1 style="margin-top: 40px; color: aliceblue;">Ești organizator?</h1>
-        <button type="button" class="transparent-button" style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE
-            ACUM!</button>
+        <a href="<?= $redirectLink ?>" class="transparent-button"
+        style="display: block; margin-top: 20px; width: 30%;">ÎNCEPE ACUM!</a>
     </section>
     <section class="newsletter">
         <h3>Abonează-te la newsletter!</h3>
@@ -325,41 +538,7 @@ foreach ($rows as $row) {
     </footer>
 
     <script src="script.js"></script>
+    <script src="search_and_calendar.js"></script>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
     </body>
-
 </html>

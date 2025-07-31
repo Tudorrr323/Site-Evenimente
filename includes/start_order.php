@@ -15,33 +15,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['tickets'])) {
 
     if (empty($cart)) {
         $_SESSION['order_error'] = "Nu ai selectat bilete.";
-        header('Location: ../event1.php');
+        header('Location: ../index.php');
         exit();
-    }
-
-    $totalCantitate = 0;
-    $totalPrice = 0;
-    foreach ($cart as $item) {
-        $totalCantitate += (int)$item['quantity'];
-        $totalPrice += (float)$item['price'] * (int)$item['quantity'];
     }
 
     try {
-        $stmt = $pdo->prepare("INSERT INTO cos (id_user, isBought, cantitate, pret) 
-            VALUES (:id_user, 0, :cantitate, :pret_total)");
-        $stmt->execute([
-            ':id_user' => $userId,
-            ':cantitate' => $totalCantitate,
-            ':pret_total' => $totalPrice
-        ]);
+        // Generezi un order_id unic pentru întreaga comandă
+        $order_id = 'TICK' . date('YmdHis') . bin2hex(random_bytes(3));
 
-        $_SESSION['current_order_id'] = $pdo->lastInsertId();
-        $_SESSION['cart_items'] = $cart;
+        $sql = "INSERT INTO cos_bilet (id_bilet, cantitate, pret, pret_total, isBought, id_user, cod_bilet, added_at, order_id)
+                VALUES (:id_bilet, :cantitate, :pret, :pret_total, :isBought, :id_user, :cod_bilet, :added_at, :order_id)";
+        $stmt = $pdo->prepare($sql);
 
+        foreach ($cart as $item) {
+            $id_bilet = $item['id_bilet'];
+            $cantitate = (int)$item['quantity'];
+            $pret = (float)$item['price'];
+            $isBought = 0;
+
+            for ($i = 0; $i < $cantitate; $i++) {
+                $cod_bilet = 'B' . date('YmdHis') . bin2hex(random_bytes(3));
+                $added_at = date('Y-m-d H:i:s');  // ora curentă
+
+                $stmt->execute([
+                    ':id_bilet' => $id_bilet,
+                    ':cantitate' => 1,
+                    ':pret' => $pret,
+                    ':pret_total' => $pret,
+                    ':isBought' => $isBought,
+                    ':id_user' => $userId,
+                    ':cod_bilet' => $cod_bilet,
+                    ':added_at' => $added_at,
+                    ':order_id' => $order_id
+                ]);
+            }
+        }
+
+        $_SESSION['success_message'] = "Comanda a fost salvată cu succes!";
         header('Location: ../cart.php');
         exit();
+
     } catch (PDOException $e) {
-        $_SESSION['order_error'] = "Eroare la creare comandă: " . $e->getMessage();
+        $_SESSION['order_success'] = "Mulțumim pentru comandă! Comanda ta a fost procesată cu succes.";
         header('Location: ../cart.php');
         exit();
     }

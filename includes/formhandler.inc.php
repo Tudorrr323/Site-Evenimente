@@ -7,9 +7,15 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
     $pwd = $_POST["pwd"];
     $phone = $_POST["phone"];
     $bday = $_POST["bday"];
-    $role = "user";
+    $company = $_POST["company"] ?? "-";
+    if ($company !== $_POST["company"]) {
+        $company = "-";
+    }
 
-    
+    $role = $_POST["role"] ?? "user";
+    if ($role !== "manager") {
+        $role = "user";
+    }
 
     try {
         require_once "dbh.inc.php";
@@ -17,9 +23,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
         //Creare cos
         $queryCos = "INSERT INTO cos (isBought) VALUES (0)";
         $pdo->exec($queryCos);
-        $id_cos = $pdo->lastInsertId();
 
-        $query = "INSERT INTO user (fname, lname, email, password, phone, bday, role, id_cos) VALUES (:fname, :lname, :email, :pwd, :phone, :bday, :role, :id_cos);";
+        $query = "INSERT INTO user (fname, lname, email, password, phone, bday, role, company) VALUES (:fname, :lname, :email, :pwd, :phone, :bday, :role, :company);";
 
         $stmt = $pdo->prepare($query);
 
@@ -30,7 +35,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bindParam(":phone", $phone);
         $stmt->bindParam(":bday", $bday);
         $stmt->bindParam(":role", $role);
-        $stmt->bindParam(":id_cos", $id_cos);
+        $stmt->bindParam(":company", $company);
 
         $stmt->execute();
 
@@ -42,7 +47,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['user_phone'] = $phone;
         $_SESSION['user_bday'] = $bday;
         $_SESSION['user_role'] = $role;
-        $_SESSION['user_cos'] = $id_cos;
+        $_SESSION['user_company'] = $company;
 
         $pdo = null;
         $stmt = null;

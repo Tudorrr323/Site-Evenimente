@@ -1,14 +1,3 @@
-document.addEventListener("DOMContentLoaded", function () {
-  const datePicker = document.getElementById("event-date-picker");
-
-  datePicker.addEventListener("change", function () {
-    const selectedDate = this.value;
-    if (selectedDate) {
-      window.location.href = `events_by_date.php?date=${selectedDate}`;
-    }
-  });
-});
-
 document.addEventListener('DOMContentLoaded', () => {
   const menuToggle = document.getElementById('menu-toggle');
   const navbarLeft = document.getElementById('navbar-left');

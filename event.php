@@ -35,6 +35,10 @@ $stmtCat = $pdo->prepare("
 ");
 $stmtCat->execute([$event_id]);
 $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
+
+$isFilm = in_array('Film', $eventCategories);
+$now = new DateTime();
+$isExpired = !$isFilm && ($now > $eventDate);
 ?>
 
 <!DOCTYPE html>
@@ -46,27 +50,31 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
     <style>
         .event-card-horizontal:hover {
-        transform: none !important;
-    }
+            transform: none !important;
+        }
+        
         .ticket-actions {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        flex-wrap: nowrap;
-    }
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            flex-wrap: nowrap;
+        }
 
-    .ticket-actions input.ticket-qty {
-        width: 60px;
-    }
+        .ticket-actions input.ticket-qty {
+            width: 60px;
+        }
 
-    .ticket-total-price {
-        white-space: nowrap;
-    }
+        .ticket-total-price {
+            white-space: nowrap;
+        }
 
-    .search-bar {
+        .search-bar {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -101,23 +109,39 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
         }
 
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
+        }
+        
         li::marker {
         content: none !important;
         }
@@ -134,18 +158,28 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
                 <li class="burger-logo">
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
+                </div>
                 </li>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -161,11 +195,11 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
                 <li class="desktop-search">
                 <div class="search-results-container">
                     <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <input type="text" class="search-input" placeholder="Events..." />
+                        <input type="text" class="city-input" placeholder="City..." />
+                        <button class="search-button" type="button"><i class="fas fa-search"></i></button>
                     </div>
-                    <div id="live-results"></div>
+                    <div class="live-results" id="live-results-desktop"></div>
                 </div>
                 </li>
                 <?php if (isset($_SESSION["user_fname"])): ?>
@@ -202,15 +236,16 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
                         foreach ($categories as $category) {
                             $denumire = htmlspecialchars($category['denumire']);
 
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                            echo '<a href="discover_events.php?category=' . urlencode($denumire) . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
                     ?>
                 </div>
-                <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                <div id="calendar-container" style="position: relative; display: inline-block;">
+                    <input type="text" id="event-date-picker" style="width: 250px; padding: 8px; border-radius: 4px; display: none;">
+                    <i id="calendar-icon" class="fa fa-calendar" style="cursor: pointer; font-size: 20px; margin-left: 8px;"></i>
                 </div>
             </div>
         </div>
@@ -225,6 +260,9 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
 
             <div class="event-details">
                 <h2 class="event-title"><?= htmlspecialchars($event['name']) ?></h2>
+                <?php if ($isExpired): ?>
+                    <p style="color: red; font-weight: bold; font-size: 18px; margin-top: 5px;">Eveniment expirat</p>
+                <?php endif; ?>
                 <div class="event-location"><i class="fas fa-map-marker-alt"></i> <?= htmlspecialchars($event['location']) ?></div>
                 <div class="event-date"><i class="fas fa-clock"></i> Start: <?= htmlspecialchars($event['date']) ?></div>
                 <div class="event-description"><?= $event['description'] ?></div>
@@ -266,7 +304,7 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
                                         data-type="<?= htmlspecialchars($bilet['denumire']) ?>" 
                                         data-price="<?= (float)$bilet['pret'] ?>" 
                                         class="ticket-qty"
-                                        <?= $isSoldOut || $eventStarted ? 'disabled' : '' ?>>
+                                        <?= $isSoldOut || $eventStarted || $isExpired ? 'disabled' : '' ?>>
                                     <span class="ticket-total-price"><?= (float)$bilet['pret'] ?> RON</span>
                                 </div>
                             </li>
@@ -281,7 +319,15 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
                         <?php endif; ?>
                         </ul>
 
-                    <?php if ($event_id !== 25): ?>
+                    <?php if ($isExpired): ?>
+                        <button 
+                            class="buy-ticket-btn" 
+                            style="width: 30%; float: right; background-color: gray; visibility: hidden;" 
+                            disabled 
+                            title="Eveniment expirat - nu se mai pot cumpăra bilete.">
+                            Eveniment expirat
+                        </button>
+                    <?php elseif ($event_id !== 25): ?>
                         <button 
                             class="buy-ticket-btn" 
                             id="finalize-purchase" 
@@ -360,9 +406,16 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
     </footer>
 
     <script src="script.js"></script>
+    <script src="search_and_calendar.js"></script>
 
-    <script>
-        document.getElementById("finalize-purchase").addEventListener("click", function () {
+<script>
+    const eventInfo = <?= json_encode([
+        'name' => $event['name'],
+        'date' => $event['date'],
+        'location' => $event['location']
+    ]); ?>;
+
+    document.getElementById("finalize-purchase").addEventListener("click", function () {
         if (this.disabled) {
             alert("Evenimentul a început și nu mai poți cumpăra bilete.");
             return;
@@ -376,9 +429,17 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
             if (quantity > 0) {
                 const id_bilet = input.getAttribute('data-id');
                 const type = input.getAttribute('data-type').trim();
-                const price = parseInt(input.getAttribute('data-price'));
+                const price = parseFloat(input.getAttribute('data-price'));
 
-                tickets.push({ id_bilet: id_bilet, type: type, price: price, quantity: quantity });
+                tickets.push({
+                    id_bilet: id_bilet,
+                    type: type,
+                    price: price,
+                    quantity: quantity,
+                    event_name: eventInfo.name,
+                    event_date: eventInfo.date,
+                    event_location: eventInfo.location
+                });
             }
         });
 
@@ -387,54 +448,18 @@ $eventCategories = $stmtCat->fetchAll(PDO::FETCH_COLUMN);
             return;
         }
 
-        // Salvează biletele în localStorage ca backup
         localStorage.setItem('cart', JSON.stringify(tickets));
-
-        // Salvează și detalii eveniment
         localStorage.setItem('eventDetails', JSON.stringify({
-            location: "<?= addslashes($event['location']) ?>",
-            date: "<?= addslashes($event['date']) ?>",
+            location: eventInfo.location,
+            date: eventInfo.date,
             id_event: <?= $event['id_event'] ?>
         }));
 
-        // Trimite formularul către start_order.php
         document.getElementById('tickets-json').value = JSON.stringify(tickets);
         document.getElementById('ticket-form').submit();
     });
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
 </script>
+
 </body>
 
 </html>

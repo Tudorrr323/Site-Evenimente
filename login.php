@@ -11,6 +11,8 @@ require_once 'includes/dbh.inc.php';
     <title>Site Eveniment</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" />
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <style>
         .search-bar {
@@ -48,21 +50,37 @@ require_once 'includes/dbh.inc.php';
             background-color: #a00a0a;
         }
 
-        #live-results {
+        .search-results-container {
+            position: relative;
+        }
+
+        .live-results {
             position: absolute;
-            top: calc(100% + 4px); /* puțin spațiu sub bara */
+            top: 100%;
             left: 0;
             width: 100%;
             background: white;
             border: 1px solid #ccc;
+            border-radius: 6px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
-            z-index: 5;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .search-results-container {
-            position: relative;
-            width: max-content; /* sau o lățime fixă dacă vrei să o limitezi */
+        .search-result-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
         }
 
         li::marker {
@@ -83,17 +101,26 @@ require_once 'includes/dbh.inc.php';
                     <a href="index.php" class="logo-link"><img src="IMG/logo.png" alt="Logo"></a>
                 </li>
                 <li class="mobile-search">
-                    <div class="search-bar">
-                        <input type="text" placeholder="Events..." />
-                        <input type="text" placeholder="City..." />
-                        <button><i class="fas fa-search"></i></button>
-                    </div>
+                    <div class="search-results-container">
+                        <div class="search-bar">
+                            <input type="text" class="search-input" id="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" id="city-input" placeholder="City..." />
+                            <button type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                    <div class="live-results" id="live-results-mobile"></div>
                 </li>
                 <li><a href="index.php">Home</a></li>
                 <li><a href="discover_events.php">Discover Events</a></li>
                 <li><a href="my_tickets.php">My Tickets</a></li>
                 <li><a href="virtual_events.php">Virtual Events</a></li>
-                <li><a href="create_events.php">Create Events</a></li>
+                <?php
+                    $createHref = "signup_manager.php";
+
+                    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'manager') {
+                        $createHref = "create_events.php";
+                    }
+                ?>
+                <li><a href="<?= $createHref ?>">Create Events</a></li>
                 <li><a href="about_us.php">About Us</a></li>
             </ul>
         </div>
@@ -108,13 +135,13 @@ require_once 'includes/dbh.inc.php';
             <ul id="navbar-right">
                 <li class="desktop-search">
                 <div class="search-results-container">
-                    <div class="search-bar">
-                    <input type="text" id="search-input" placeholder="Events..." />
-                    <input type="text" id="city-input" placeholder="City..." />
-                    <button type="button"><i class="fas fa-search"></i></button>
+                        <div class="search-bar">
+                            <input type="text" class="search-input" placeholder="Events..." />
+                            <input type="text" class="city-input" placeholder="City..." />
+                            <button class="search-button" type="button"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div class="live-results" id="live-results-desktop"></div>
                     </div>
-                    <div id="live-results"></div>
-                </div>
                 </li>
                 <li class="desktop-login"><a href="login.php">Log in</a></li>
                 <li class="desktop-signup"><a href="signup.php">Sign Up</a></li>
@@ -139,18 +166,19 @@ require_once 'includes/dbh.inc.php';
                     }
 
                     if ($categories) {
-                        foreach ($categories as $category) {
-                            $denumire = htmlspecialchars($category['denumire']);
-
-                            echo '<a href="#" class="category-link">' . $denumire . '</a>';
+                        foreach ($categories as $categoryItem) {
+                            $denumire = htmlspecialchars($categoryItem['denumire']);
+                            $urlCategory = urlencode($denumire);
+                            echo '<a href="discover_events.php?category=' . $urlCategory . '" class="category-link">' . $denumire . '</a>';
                         }
                     } else {
                         echo '<p>Nu există categorii disponibile.</p>';
                     }
-                    ?>
+                ?>
                 </div>
-                <div class="category-calendar">
-                        <input type="date" id="event-date-picker">
+                <div id="calendar-container" style="position: relative; display: inline-block;">
+                    <input type="text" id="event-date-picker" style="width: 250px; padding: 8px; border-radius: 4px; display: none;">
+                    <i id="calendar-icon" class="fa fa-calendar" style="cursor: pointer; font-size: 20px; margin-left: 8px;"></i>
                 </div>
             </div>
         </div>
@@ -205,41 +233,8 @@ require_once 'includes/dbh.inc.php';
     </script>
 
     <script src="script.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            const cityInput = document.getElementById('city-input');
-            const liveResults = document.getElementById('live-results');
-
-            function searchLive() {
-                const q = searchInput.value.trim();
-                const city = cityInput.value.trim();
-
-                if (q.length < 1 && city.length < 1) {
-                liveResults.innerHTML = '';
-                liveResults.style.display = 'none';
-                return;
-                }
-
-                fetch(`includes/search_backend.php?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city)}&limit=3`)
-                .then(res => res.text())
-                .then(data => {
-                    liveResults.innerHTML = data;
-                    liveResults.style.display = data.trim() ? 'block' : 'none';
-                });
-            }
-
-            searchInput.addEventListener('input', searchLive);
-            cityInput.addEventListener('input', searchLive);
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.search-results-container')) {
-                liveResults.style.display = 'none';
-                }
-            });
-        });
-    </script>
+    <script src="search_and_calendar.js"></script>
+    
 </body>
 
 </html>

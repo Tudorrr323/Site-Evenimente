@@ -16,28 +16,38 @@ Punctul forte al aplicației este sistemul automatizat de generare a biletelor �
 
 ## 📸 Galerie Foto & Demo
 
-Mai jos sunt prezentate interfața aplicației și funcționalitățile principale:
+Mai jos este prezentată o galerie completă cu interfața aplicației și funcționalitățile sale, inclusiv capturi de ecran din procesul de utilizare și administrare.
 
-### 1. Interfața Principală și Evenimente
-Pagina de pornire oferă acces rapid la evenimente populare și funcții de căutare.
-![Home Page](Poze%20Site/image.png)
+### Interfață și Funcționalități
 
-### 2. Detalii Eveniment & Categorii
-Utilizatorii pot naviga prin categorii și vizualiza detalii despre evenimente.
-![Event Details](Poze%20Site/image%20(1).png)
+![Imagine Prezentare 1](Poze%20Site/image.png)
+*Pagina principală și secțiunea de erou*
 
-### 3. Coșul de Cumpărături și Checkout
-Procesul de achiziție este simplificat, oferind un rezumat clar al comenzii.
-![Cart](Poze%20Site/image%20(2).png)
+![Imagine Prezentare 2](Poze%20Site/image%20(1).png)
+*Pagina cu datele utilizatorului*
 
-### 4. Biletele Mele (Dashboard)
-Utilizatorii își pot vedea istoricul comenzilor și pot descărca biletele.
-![My Tickets](Poze%20Site/image%20(3).png)
+![Imagine Prezentare 3](Poze%20Site/image%20(2).png)
+*Pagina unui eveniment*
 
-### 5. Generare Bilet PDF (Demo)
-Sistemul generează un fișier PDF securizat pentru fiecare comandă. Mai jos puteți vedea structura biletului generat, inclusiv codul QR pentru scanare.
+![Imagine Prezentare 4](Poze%20Site/image%20(3).png)
+*Secțiunea "Biletele Mele"*
 
-![Ticket Preview](Poze%20Site/Screenshot%202026-01-17%20201629.png)
+### Capturi din Aplicație
+
+![Screenshot 1](Poze%20Site/Screenshot%202026-01-17%20195528.png)
+![Screenshot 2](Poze%20Site/Screenshot%202026-01-17%20195553.png)
+![Screenshot 3](Poze%20Site/Screenshot%202026-01-17%20195610.png)
+![Screenshot 4](Poze%20Site/Screenshot%202026-01-17%20195626.png)
+![Screenshot 5](Poze%20Site/Screenshot%202026-01-17%20202532.png)
+![Screenshot 6](Poze%20Site/Screenshot%202026-01-17%20202555.png)
+![Screenshot 7](Poze%20Site/Screenshot%202026-01-17%20202610.png)
+![Screenshot 8](Poze%20Site/Screenshot%202026-01-17%20202641.png)
+![Screenshot 9](Poze%20Site/Screenshot%202026-01-17%20202655.png)
+![Screenshot 10](Poze%20Site/Screenshot%202026-01-17%20202824.png)
+![Screenshot 11](Poze%20Site/Screenshot%202026-01-17%20202919.png)
+
+### Generare Bilet PDF (Demo)
+Sistemul generează un fișier PDF securizat pentru fiecare comandă.
 
 📄 **Descarcă Exemplu Bilet:** [Vezi fișierul PDF complet](Poze%20Site/bilet_comanda_93.pdf)
 
@@ -108,5 +118,3 @@ Proiectul a fost organizat modular pentru a asigura mentenanța ușoară:
     *   Accesați `http://localhost/Site-Evenimente`.
 
 ---
-
-© 2025 Ticketa. Dezvoltat la **StillCo**.
